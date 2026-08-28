@@ -1,40 +1,49 @@
 # Changelog
 
-## V0.4.0 — Position / Exit Analysis
+## V0.5.0 — Backtest & Win-rate Calibration
 
-Nâng cấp trực tiếp từ V0.3.0 theo roadmap.
+Nâng trực tiếp từ V0.4.0 theo roadmap.
 
 ### Added
 
-- Position / Exit Planner ngay trong Analyze.
-- Nhập giá đã vào lệnh và tính P/L hiện tại.
-- Position status: `PROFIT / NEAR_ENTRY / LOSS / RISK`.
-- Rule-based action: HOLD / Protect Profit / Take Partial / Reduce Risk / Exit Risk.
-- Defensive Stop / Protect level theo ATR + EMA/VWAP + support/structure.
-- Break-even và trailing reference.
-- Exit targets ngắn hạn / trung hạn / dài hạn.
-- Horizon guide theo timeframe, ghi rõ không phải ETA.
-- Reasons / warnings / guardrails riêng cho vị thế đang nắm giữ.
-- `POSITION` overlay trên chart: Entry Actual, Protect/Stop, Exit S/M/L.
-- Positions tab hoạt động thật, lưu tối đa 30 giá vốn bằng localStorage.
-- Tự khôi phục giá vốn khi quay lại symbol đã lưu.
+- Backtest Engine không look-ahead.
+- Warm-up 220 candles; history guard tối thiểu 280 candles.
+- Entry fill simulation sau signal; no-fill tracking.
+- Conservative same-candle rule: SL ưu tiên trước TP.
+- Sequential/non-overlapping benchmark trades.
+- TP1-before-SL benchmark: WIN / LOSS / TIMEOUT.
+- Raw Win Rate + Beta(2,2) Calibrated Win Rate.
+- Expectancy R, Profit Factor, Max Drawdown R.
+- Resolution Rate, Average Bars Held, Median Bars to TP1.
+- TP1 / TP2 / TP3 reach statistics.
+- 25% recent validation window.
+- Calibration cohort theo Setup + Regime + Score Band với fallback khi thiếu sample.
+- Calibration quality: INSUFFICIENT / LOW / MEDIUM / HIGH.
+- Time-to-TP1 historical estimate.
+- Backtest UI + recent simulated trades + methodology details.
+- Không gán probability cho WAIT / AVOID.
 
-### Guardrails
+### Performance
 
-- LONG-only, không SHORT.
-- Không leverage recommendation.
-- Không auto trade.
-- Không tự đề xuất tỷ trọng bán theo target.
-- Không win rate / probability / expectancy giả.
-- Time horizon không phải time-to-target prediction.
+- Refactor Technical Engine: precompute causal indicator series một lần.
+- Backtest sử dụng `analyzeTechnicalAt()` thay vì recompute toàn bộ indicator ở mỗi candle.
+- Synthetic 1.000-candle backtest smoke test đạt khoảng 0,25–0,35 giây trong sandbox sau tối ưu.
 
-### Preserved
+### Data history
 
-- V0.1.0 Market Data & Mobile Shell.
-- V0.2.0 Indicator & Market Regime Engine.
-- V0.3.0 Entry / SL / TP Signal Engine.
-- Standard Next.js deploy; không static export / không `out`.
+- Binance snapshot tăng Kline limit từ 500 lên 1.000.
+- Yahoo Stock daily range tăng lên 3y.
+- Yahoo Stock weekly range tăng lên 10y.
+- SSI requested date window mở rộng cho daily/weekly nhưng dữ liệu thực tế vẫn phụ thuộc giới hạn provider/API.
+
+### Kept
+
+- Market Data & Mobile Shell.
+- Indicator & Market Regime.
+- Entry / SL / TP Signal Engine.
+- Position / Exit Analysis.
+- PWA / Dark / Light / Auto.
 
 ### Next
 
-- V0.5.0 — Backtest & Win-rate Calibration.
+- V0.6.0 — Watchlist / Signal Monitoring theo roadmap hiện tại của UI.

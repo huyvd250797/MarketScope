@@ -252,33 +252,82 @@ function rsiStatus(value: number | null): string {
   return 'Trung tính';
 }
 
-export function analyzeTechnical(candles: Candle[], market: MarketType): TechnicalAnalysis {
-  const closes = candles.map((c) => c.close);
-  const ema20 = ema(closes, 20);
-  const ema50 = ema(closes, 50);
-  const ema200 = ema(closes, 200);
-  const rsi14 = rsi(closes, 14);
-  const macdSeries = macd(closes);
-  const atr14 = atr(candles, 14);
-  const adx14 = adx(candles, 14);
-  const vwap = rollingVwap(candles, market);
+export type PreparedTechnical = {
+  candles: Candle[];
+  market: MarketType;
+  closes: number[];
+  ema20: Maybe[];
+  ema50: Maybe[];
+  ema200: Maybe[];
+  rsi14: Maybe[];
+  macdSeries: MacdSeries;
+  atr14: Maybe[];
+  adx14: AdxSeries;
+  vwap: Maybe[];
+};
 
-  const price = closes[closes.length - 1] ?? 0;
-  const e20 = last(ema20);
-  const e50 = last(ema50);
-  const e200 = last(ema200);
-  const rsiValue = last(rsi14);
-  const macdValue = last(macdSeries.macd);
-  const macdSignal = last(macdSeries.signal);
-  const macdHist = last(macdSeries.histogram);
-  const adxValue = last(adx14.adx);
-  const plusDI = last(adx14.plusDI);
-  const minusDI = last(adx14.minusDI);
-  const atrValue = last(atr14);
-  const vwapValue = last(vwap);
+export function prepareTechnical(candles: Candle[], market: MarketType): PreparedTechnical {
+  const closes = candles.map((c) => c.close);
+  return {
+    candles,
+    market,
+    closes,
+    ema20: ema(closes, 20),
+    ema50: ema(closes, 50),
+    ema200: ema(closes, 200),
+    rsi14: rsi(closes, 14),
+    macdSeries: macd(closes),
+    atr14: atr(candles, 14),
+    adx14: adx(candles, 14),
+    vwap: rollingVwap(candles, market),
+  };
+}
+
+function valueAt(values: Maybe[], index: number): number | null {
+  const value = values[index];
+  return value != null && Number.isFinite(value) ? value : null;
+}
+
+function slopePercentAt(values: Maybe[], index: number, lookback = 5): number | null {
+  const valid: number[] = [];
+  for (let i = index; i >= 0 && valid.length <= lookback; i -= 1) {
+    const value = values[i];
+    if (value != null && Number.isFinite(value)) valid.push(value);
+  }
+  if (valid.length <= lookback) return null;
+  const current = valid[0];
+  const previous = valid[lookback];
+  return previous === 0 ? null : ((current - previous) / Math.abs(previous)) * 100;
+}
+
+function pointsUntil(candles: Candle[], values: Maybe[], endIndex: number): TechnicalPoint[] {
+  const out: TechnicalPoint[] = [];
+  for (let i = 0; i <= endIndex && i < candles.length; i += 1) {
+    const value = values[i];
+    if (value != null && Number.isFinite(value)) out.push({ time: candles[i].time, value: round(value, 8) as number });
+  }
+  return out;
+}
+
+export function analyzeTechnicalAt(prepared: PreparedTechnical, endIndex: number, includeSeries = false): TechnicalAnalysis {
+  const { candles, market, closes, ema20, ema50, ema200, rsi14, macdSeries, atr14, adx14, vwap } = prepared;
+  const index = Math.max(0, Math.min(endIndex, candles.length - 1));
+  const price = closes[index] ?? 0;
+  const e20 = valueAt(ema20, index);
+  const e50 = valueAt(ema50, index);
+  const e200 = valueAt(ema200, index);
+  const rsiValue = valueAt(rsi14, index);
+  const macdValue = valueAt(macdSeries.macd, index);
+  const macdSignal = valueAt(macdSeries.signal, index);
+  const macdHist = valueAt(macdSeries.histogram, index);
+  const adxValue = valueAt(adx14.adx, index);
+  const plusDI = valueAt(adx14.plusDI, index);
+  const minusDI = valueAt(adx14.minusDI, index);
+  const atrValue = valueAt(atr14, index);
+  const vwapValue = valueAt(vwap, index);
   const atrPercent = atrValue != null && price ? (atrValue / price) * 100 : null;
   const vwapDistance = vwapValue != null && vwapValue ? ((price - vwapValue) / vwapValue) * 100 : null;
-  const structure = detectStructure(candles);
+  const structure = detectStructure(candles.slice(Math.max(0, index - 79), index + 1));
 
   const bullishAlignment = e20 != null && e50 != null && e200 != null && price > e20 && e20 > e50 && e50 > e200;
   const bearishAlignment = e20 != null && e50 != null && e200 != null && price < e20 && e20 < e50 && e50 < e200;
@@ -286,7 +335,7 @@ export function analyzeTechnical(candles: Candle[], market: MarketType): Technic
   const trendPresent = (adxValue ?? 0) >= 20;
   const highVolThreshold = market === 'CRYPTO' ? 4 : 3;
   const highVolatility = atrPercent != null && atrPercent >= highVolThreshold;
-  const emaSlope = slopePercent(ema20);
+  const emaSlope = slopePercentAt(ema20, index);
   const emaSpreadPercent = e20 != null && e50 != null && price ? Math.abs(e20 - e50) / price * 100 : 0;
   const minSlope = market === 'CRYPTO' ? 0.05 : 0.04;
   const minSpread = market === 'CRYPTO' ? 0.08 : 0.06;
@@ -335,7 +384,7 @@ export function analyzeTechnical(candles: Candle[], market: MarketType): Technic
 
   return {
     computedAt: new Date().toISOString(),
-    sampleSize: candles.length,
+    sampleSize: index + 1,
     regime: {
       key,
       label,
@@ -345,23 +394,31 @@ export function analyzeTechnical(candles: Candle[], market: MarketType): Technic
       description: `${label}; ADX ${adxValue == null ? 'N/A' : adxValue.toFixed(1)}; cấu trúc ${structure}. Đây là phân loại trạng thái thị trường, chưa phải tín hiệu mua/bán.`,
     },
     indicators: {
-      ema: { ema20: round(e20, 8), ema50: round(e50, 8), ema200: round(e200, 8), slope20Percent: round(slopePercent(ema20), 3), status: emaStatus },
+      ema: { ema20: round(e20, 8), ema50: round(e50, 8), ema200: round(e200, 8), slope20Percent: round(emaSlope, 3), status: emaStatus },
       rsi14: { value: round(rsiValue, 2), status: rsiStatus(rsiValue) },
       macd: { value: round(macdValue, 8), signal: round(macdSignal, 8), histogram: round(macdHist, 8), status: macdStatus },
       adx14: { value: round(adxValue, 2), plusDI: round(plusDI, 2), minusDI: round(minusDI, 2), status: adxStatus },
       atr14: { value: round(atrValue, 8), percent: round(atrPercent, 2), status: atrStatus },
       vwap: { value: round(vwapValue, 8), distancePercent: round(vwapDistance, 2), status: vwapStatus },
     },
-    series: {
-      ema20: points(candles, ema20),
-      ema50: points(candles, ema50),
-      ema200: points(candles, ema200),
-      vwap: points(candles, vwap),
-      rsi14: points(candles, rsi14),
-      macd: points(candles, macdSeries.macd),
-      macdSignal: points(candles, macdSeries.signal),
-      macdHistogram: points(candles, macdSeries.histogram),
-      adx14: points(candles, adx14.adx),
+    series: includeSeries ? {
+      ema20: pointsUntil(candles, ema20, index),
+      ema50: pointsUntil(candles, ema50, index),
+      ema200: pointsUntil(candles, ema200, index),
+      vwap: pointsUntil(candles, vwap, index),
+      rsi14: pointsUntil(candles, rsi14, index),
+      macd: pointsUntil(candles, macdSeries.macd, index),
+      macdSignal: pointsUntil(candles, macdSeries.signal, index),
+      macdHistogram: pointsUntil(candles, macdSeries.histogram, index),
+      adx14: pointsUntil(candles, adx14.adx, index),
+    } : {
+      ema20: [], ema50: [], ema200: [], vwap: [], rsi14: [], macd: [], macdSignal: [], macdHistogram: [], adx14: [],
     },
   };
 }
+
+export function analyzeTechnical(candles: Candle[], market: MarketType): TechnicalAnalysis {
+  const prepared = prepareTechnical(candles, market);
+  return analyzeTechnicalAt(prepared, candles.length - 1, true);
+}
+

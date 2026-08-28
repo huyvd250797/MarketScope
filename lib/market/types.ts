@@ -138,6 +138,86 @@ export type PositionExitAnalysis = {
   disclaimer: string;
 };
 
+
+export type BacktestTradeOutcome = 'WIN' | 'LOSS' | 'TIMEOUT';
+
+export type BacktestTrade = {
+  signalTime: number;
+  fillTime: number;
+  exitTime: number;
+  setup: SignalSetup;
+  regime: TechnicalAnalysis['regime']['key'];
+  score: number;
+  scoreBand: string;
+  entryPrice: number;
+  stopPrice: number;
+  tp1Price: number;
+  outcome: BacktestTradeOutcome;
+  realizedR: number;
+  returnPercent: number;
+  barsHeld: number;
+  barsToTp1: number | null;
+  tp1Hit: boolean;
+  tp2Hit: boolean;
+  tp3Hit: boolean;
+};
+
+export type BacktestMetrics = {
+  filledTrades: number;
+  resolvedTrades: number;
+  wins: number;
+  losses: number;
+  timeouts: number;
+  noFillSignals: number;
+  winRate: number | null;
+  calibratedWinRate: number | null;
+  resolutionRate: number | null;
+  expectancyR: number | null;
+  profitFactor: number | null;
+  maxDrawdownR: number;
+  averageBarsHeld: number | null;
+  medianBarsToTp1: number | null;
+  tp1HitRate: number | null;
+  tp2HitRate: number | null;
+  tp3HitRate: number | null;
+};
+
+export type BacktestCalibration = {
+  applicable: boolean;
+  quality: 'INSUFFICIENT' | 'LOW' | 'MEDIUM' | 'HIGH';
+  qualityLabel: string;
+  matchedBy: string;
+  sampleSize: number;
+  resolvedTrades: number;
+  winRate: number | null;
+  calibratedWinRate: number | null;
+  expectancyR: number | null;
+  profitFactor: number | null;
+  medianBarsToTp1: number | null;
+  estimatedTimeToTp1: string | null;
+  stabilityGapPercent: number | null;
+  note: string;
+};
+
+export type BacktestResult = {
+  generatedAt: string;
+  status: 'READY' | 'LIMITED' | 'INSUFFICIENT_HISTORY';
+  sampleCandles: number;
+  warmupCandles: number;
+  evaluatedSignals: number;
+  buySignals: number;
+  metrics: BacktestMetrics;
+  validation: {
+    splitPercent: number;
+    startTime: number | null;
+    metrics: BacktestMetrics;
+  };
+  calibration: BacktestCalibration;
+  recentTrades: BacktestTrade[];
+  methodology: string[];
+  disclaimer: string;
+};
+
 export type SymbolItem = {
   symbol: string;
   name: string;
@@ -167,6 +247,7 @@ export type MarketSnapshot = {
   candles: Candle[];
   analysis?: TechnicalAnalysis;
   signal?: TradeSignal;
+  backtest?: BacktestResult;
   fallbackUsed?: boolean;
   warning?: string;
 };

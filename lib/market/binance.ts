@@ -68,7 +68,7 @@ export class BinanceProvider implements MarketProvider {
   async getSnapshot(symbol: string, interval: Interval): Promise<MarketSnapshot> {
     const safeSymbol = symbol.toUpperCase();
     const [klinesRaw, ticker] = await Promise.all([
-      fetchJson<unknown[][]>(`/api/v3/klines?symbol=${encodeURIComponent(safeSymbol)}&interval=${intervalMap[interval]}&limit=500`),
+      fetchJson<unknown[][]>(`/api/v3/klines?symbol=${encodeURIComponent(safeSymbol)}&interval=${intervalMap[interval]}&limit=1000`),
       fetchJson<Ticker24h>(`/api/v3/ticker/24hr?symbol=${encodeURIComponent(safeSymbol)}`),
     ]);
 

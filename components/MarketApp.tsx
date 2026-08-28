@@ -5,6 +5,7 @@ import MarketChart, { type ChartOverlays } from './MarketChart';
 import TechnicalAnalysisPanel from './TechnicalAnalysisPanel';
 import SignalPanel from './SignalPanel';
 import PositionPanel from './PositionPanel';
+import BacktestPanel from './BacktestPanel';
 import { analyzePositionExit } from '@/lib/analysis/position';
 import type { Interval, MarketSnapshot, MarketType, PositionExitAnalysis, SymbolItem } from '@/lib/market/types';
 
@@ -259,9 +260,9 @@ export default function MarketApp() {
           <div>
             <div className="brand-row">
               <strong>MarketScope</strong>
-              <span className="version-badge">V0.4.0</span>
+              <span className="version-badge">V0.5.0</span>
             </div>
-            <span className="brand-sub">Position • Exit • Profit Planner</span>
+            <span className="brand-sub">Backtest • Win-rate • Calibration</span>
           </div>
         </div>
         <button className="theme-button" onClick={() => setNav('settings')} aria-label="Cài đặt giao diện">
@@ -379,6 +380,7 @@ export default function MarketApp() {
             )}
 
             {!loading && snapshot?.signal && <SignalPanel signal={snapshot.signal} snapshot={snapshot} />}
+            {!loading && snapshot?.backtest && <BacktestPanel backtest={snapshot.backtest} snapshot={snapshot} />}
             {!loading && snapshot?.analysis && <TechnicalAnalysisPanel analysis={snapshot.analysis} snapshot={snapshot} />}
 
             <section className="chart-card">
@@ -405,12 +407,12 @@ export default function MarketApp() {
             <section className="roadmap-card">
               <div className="roadmap-icon">↗</div>
               <div>
-                <strong>Đúng roadmap V0.4.0</strong>
-                <p>Đã có Position / Exit Planner: nhập giá vốn, P/L hiện tại, mốc bảo vệ, target ngắn/trung/dài hạn, lưu vị thế local và vẽ trực tiếp lên chart. Backtest, win rate và expectancy vẫn thuộc V0.5.0.</p>
+                <strong>Đúng roadmap V0.5.0</strong>
+                <p>Đã có backtest không look-ahead, TP1-before-SL benchmark, validation 25% gần nhất, Win rate, Expectancy, Profit Factor, Max Drawdown và calibration theo setup/regime/score band. Watchlist/alerts vẫn thuộc phiên bản sau.</p>
               </div>
             </section>
 
-            <p className="disclaimer">MarketScope V0.4.0 phân tích setup và vị thế LONG rule-based để tham khảo, không tự đặt lệnh và không đảm bảo lợi nhuận. Khung ngắn/trung/dài hạn không phải ETA; win rate/expectancy chỉ xuất hiện sau backtest ở V0.5.0.</p>
+            <p className="disclaimer">MarketScope V0.5.0 dùng backtest lịch sử để hiệu chỉnh tín hiệu LONG. Win rate/calibrated rate là thống kê quá khứ cùng mã/timeframe, không phải xác suất chắc chắn và không đảm bảo lợi nhuận tương lai.</p>
           </>
         )}
       </section>
@@ -442,7 +444,7 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
   return (
     <section className="panel-page">
       <button className="back-button" onClick={onBack}>← Quay lại</button>
-      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.4.0.</p></div>
+      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.5.0.</p></div>
       <div className="settings-card">
         <strong>Giao diện</strong>
         <p>Dark / Light / Auto được lưu trên thiết bị.</p>
@@ -461,7 +463,7 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
       </div>
       <div className="settings-card muted-card">
         <strong>Phiên bản</strong>
-        <p>MarketScope V0.4.0 — Position / Exit Analysis.</p>
+        <p>MarketScope V0.5.0 — Backtest & Win-rate Calibration.</p>
       </div>
     </section>
   );
@@ -488,7 +490,7 @@ function PositionsPanel({ positions, onOpen, onDelete, onBack }: { positions: Sa
           ))}
         </div>
       )}
-      <div className="settings-card muted-card"><strong>Lưu trữ V0.4.0</strong><p>Positions đang dùng localStorage trên thiết bị. Chưa có đồng bộ tài khoản/cloud ở phiên bản này.</p></div>
+      <div className="settings-card muted-card"><strong>Lưu trữ V0.5.0</strong><p>Positions vẫn dùng localStorage trên thiết bị. Backtest V0.5.0 được tính server-side từ OHLCV mỗi khi tải mã/timeframe; chưa lưu lịch sử backtest lên cloud.</p></div>
     </section>
   );
 }
