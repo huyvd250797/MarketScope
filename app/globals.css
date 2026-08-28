@@ -444,7 +444,7 @@ button { color: inherit; }
   .position-input-row .primary-button, .position-input-row .position-clear { grid-column: 1; width: 100%; }
 }
 
-/* V0.5.0 — Backtest & Win-rate Calibration */
+/* Backtest & Win-rate Calibration (introduced V0.5.0) */
 .backtest-card { margin-top: 12px; padding: 14px; border: 1px solid var(--border); border-radius: 18px; background: var(--surface); box-shadow: var(--shadow); }
 .backtest-title-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
 .backtest-title-row h2 { margin: 0; font-size: 15px; }
@@ -523,4 +523,132 @@ button { color: inherit; }
   .calibration-hero { grid-template-columns: 1fr; }
   .calibration-meta { justify-items: start; text-align: left; }
   .backtest-summary-grid, .backtest-summary-grid.compact { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* V0.6.0 — Watchlist & Signal Monitoring + module separation */
+.analyze-quick-actions { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 10px; }
+.watch-toggle, .position-module-link { min-height: 34px; border: 1px solid var(--border); border-radius: 10px; padding: 0 11px; background: var(--surface-2); color: var(--muted); font-size: 9px; font-weight: 850; cursor: pointer; }
+.watch-toggle.active { color: var(--warning); border-color: color-mix(in srgb, var(--warning) 30%, var(--border)); background: var(--warning-soft); }
+.position-module-link { color: var(--brand); border-color: color-mix(in srgb, var(--brand) 26%, var(--border)); background: var(--brand-soft); }
+
+.watchlist-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.watchlist-heading > div { min-width: 0; }
+.watch-refresh { flex: 0 0 auto; min-height: 36px; padding: 0 11px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--brand); font-size: 9px; font-weight: 850; cursor: pointer; }
+.watch-refresh:disabled { opacity: .55; cursor: wait; }
+.watch-summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 7px; margin-top: 12px; }
+.watch-summary { padding: 10px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); }
+.watch-summary span { display: block; color: var(--muted); font-size: 8px; }
+.watch-summary strong { display: block; margin-top: 4px; font-size: 17px; }
+.watch-summary.brand strong { color: var(--brand); }
+.watch-summary.buy { border-color: color-mix(in srgb, var(--green) 22%, var(--border)); }
+.watch-summary.buy strong { color: var(--green); }
+.watch-summary.wait { border-color: color-mix(in srgb, var(--warning) 22%, var(--border)); }
+.watch-summary.wait strong { color: var(--warning); }
+.watch-summary.avoid { border-color: color-mix(in srgb, var(--red) 22%, var(--border)); }
+.watch-summary.avoid strong { color: var(--red); }
+.watch-last-refresh { margin-top: 6px; color: var(--muted); font-size: 8px; text-align: right; }
+.watch-add-card { margin-top: 10px; padding: 11px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
+.watch-market-toggle { display: inline-grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; border-radius: 10px; background: var(--surface-3); }
+.watch-market-toggle button { min-width: 86px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 8px; font-weight: 900; cursor: pointer; }
+.watch-market-toggle button.active { color: var(--text); background: var(--surface); box-shadow: 0 2px 8px rgba(0,0,0,.06); }
+.watch-add-row { display: grid; grid-template-columns: minmax(0, 1fr) 82px auto; gap: 7px; margin-top: 9px; }
+.watch-add-row input, .watch-add-row select { min-width: 0; height: 42px; border: 1px solid var(--border); border-radius: 10px; padding: 0 10px; outline: 0; background: var(--surface-2); color: var(--text); font-size: 12px; font-weight: 750; }
+.watch-add-row input:focus, .watch-add-row select:focus { border-color: var(--brand); }
+.watch-add-card > p { margin: 7px 0 0; color: var(--muted); font-size: 8px; }
+.watch-list { display: grid; gap: 8px; margin-top: 10px; }
+.watch-card { display: grid; grid-template-columns: 1fr 38px; overflow: hidden; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
+.watch-card.buy { border-color: color-mix(in srgb, var(--green) 24%, var(--border)); }
+.watch-card.wait { border-color: color-mix(in srgb, var(--warning) 22%, var(--border)); }
+.watch-card.avoid { border-color: color-mix(in srgb, var(--red) 18%, var(--border)); }
+.watch-card-main { min-width: 0; padding: 11px; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.watch-card.pending .watch-card-main p { margin: 8px 0 0; color: var(--muted); font-size: 9px; }
+.watch-remove { border: 0; border-left: 1px solid var(--border); background: var(--surface-2); color: var(--muted); font-size: 18px; cursor: pointer; }
+.watch-remove:hover { color: var(--red); background: var(--red-soft); }
+.watch-card-top, .watch-card-title, .watch-price-row, .watch-card-foot, .watch-entry-line { display: flex; align-items: center; }
+.watch-card-top { justify-content: space-between; gap: 10px; }
+.watch-card-title { min-width: 0; gap: 6px; }
+.watch-card-title > span { flex: 0 0 auto; padding: 3px 5px; border-radius: 999px; background: var(--brand-soft); color: var(--brand); font-size: 7px; font-weight: 900; }
+.watch-card-title > strong { overflow: hidden; text-overflow: ellipsis; font-size: 13px; }
+.watch-card-title > em { flex: 0 0 auto; color: var(--muted); font-size: 8px; font-style: normal; }
+.watch-decision { flex: 0 0 auto; text-align: right; }
+.watch-decision b { display: block; font-size: 9px; }
+.watch-decision small { display: block; margin-top: 2px; color: var(--muted); font-size: 7px; }
+.watch-decision.buy b { color: var(--green); }
+.watch-decision.wait b { color: var(--warning); }
+.watch-decision.avoid b { color: var(--red); }
+.watch-price-row { justify-content: space-between; gap: 10px; margin-top: 8px; }
+.watch-price-row > strong { font-size: 17px; letter-spacing: -.35px; }
+.watch-price-row > span { font-size: 9px; font-weight: 850; }
+.gain-text { color: var(--green) !important; }
+.loss-text { color: var(--red) !important; }
+.watch-metrics { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 8px; }
+.watch-mini { min-width: 0; padding: 7px; border-radius: 9px; background: var(--surface-2); }
+.watch-mini span { display: block; color: var(--muted); font-size: 7px; }
+.watch-mini strong { display: block; margin-top: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 8px; }
+.watch-entry-line { justify-content: space-between; gap: 8px; margin-top: 7px; padding: 7px 8px; border-radius: 9px; background: var(--brand-soft); color: var(--brand); font-size: 7px; font-weight: 800; }
+.watch-card-foot { justify-content: space-between; gap: 8px; margin-top: 7px; color: var(--muted); font-size: 7px; }
+.watch-empty { min-height: 220px; display: flex; flex-direction: column; align-items: center; justify-content: center; margin-top: 10px; padding: 22px; border: 1px dashed var(--border); border-radius: 15px; background: var(--surface-2); text-align: center; }
+.watch-empty > span { width: 50px; height: 50px; display: grid; place-items: center; border-radius: 15px; background: var(--brand-soft); color: var(--brand); font-size: 26px; }
+.watch-empty strong { margin-top: 10px; font-size: 11px; }
+.watch-empty p { max-width: 430px; margin: 5px 0 0; color: var(--muted); font-size: 9px; line-height: 1.45; }
+.watch-note { display: flex; gap: 8px; margin-top: 10px; padding: 10px; border-radius: 11px; background: var(--brand-soft); }
+.watch-note > span { width: 20px; height: 20px; flex: 0 0 auto; display: grid; place-items: center; border-radius: 50%; background: var(--brand); color: white; font-size: 10px; font-weight: 900; }
+.watch-note p { margin: 0; color: var(--muted); font-size: 8px; line-height: 1.45; }
+
+.position-saved-section { margin-top: 12px; }
+.workspace-section-title { display: flex; justify-content: space-between; align-items: center; margin-bottom: 7px; }
+.workspace-section-title strong { font-size: 10px; }
+.workspace-section-title span { color: var(--muted); font-size: 8px; }
+.positions-list.compact { grid-template-columns: repeat(2, 1fr); }
+.saved-position.active { border-color: color-mix(in srgb, var(--brand) 42%, var(--border)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 8%, transparent); }
+.position-asset-card { margin-top: 12px; padding: 11px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); box-shadow: var(--shadow); }
+.position-asset-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 7px; margin-top: 9px; }
+.position-asset-row input { min-width: 0; height: 44px; padding: 0 11px; border: 1px solid var(--border); border-radius: 10px; outline: 0; background: var(--surface-2); color: var(--text); font-size: 14px; font-weight: 800; }
+.position-asset-row input:focus { border-color: var(--brand); }
+.position-timeframe { margin-bottom: 0; }
+.position-module-loading { min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; margin-top: 12px; border: 1px solid var(--border); border-radius: 14px; background: var(--surface); color: var(--muted); font-size: 9px; }
+.position-market-strip { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; padding: 11px 12px; border: 1px solid var(--border); border-radius: 13px; background: var(--surface); }
+.position-market-strip > div:last-child { text-align: right; }
+.position-market-strip strong { display: block; font-size: 13px; }
+.position-market-strip span { display: block; margin-top: 3px; color: var(--muted); font-size: 8px; }
+.position-chart-card { margin-top: 10px; }
+.compact-empty { min-height: 180px; }
+
+.compact-backtest .calibration-hero.compact { grid-template-columns: 1fr auto; padding: 12px; }
+.compact-backtest .calibration-hero.compact > div:first-child > strong { font-size: 26px; }
+.compact-confidence-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-top: 8px; }
+.backtest-expanded { margin-top: 9px; border: 1px solid var(--border); border-radius: 11px; background: var(--surface-2); }
+.backtest-expanded > summary { cursor: pointer; padding: 10px 11px; color: var(--brand); font-size: 9px; font-weight: 850; }
+.backtest-expanded-body { padding: 0 10px 10px; }
+
+@media (max-width: 640px) {
+  .watch-summary-grid { grid-template-columns: repeat(2, 1fr); }
+  .watch-add-row { grid-template-columns: minmax(0, 1fr) 72px; }
+  .watch-add-row .primary-button { grid-column: 1 / -1; width: 100%; }
+  .watch-metrics { grid-template-columns: repeat(2, 1fr); }
+  .positions-list.compact { grid-template-columns: 1fr; }
+  .compact-confidence-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 430px) {
+  .watchlist-heading { display: block; }
+  .watch-refresh { width: 100%; margin-top: 8px; }
+  .watch-entry-line { display: grid; }
+  .compact-backtest .calibration-hero.compact { grid-template-columns: 1fr; }
+  .compact-confidence-grid { grid-template-columns: 1fr; }
+  .position-market-strip { align-items: flex-start; }
+}
+.watch-heading-actions { display: flex; flex: 0 0 auto; gap: 6px; }
+.watch-notify { min-height: 36px; padding: 0 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--muted); font-size: 8px; font-weight: 850; cursor: pointer; }
+.watch-notify.active { color: var(--green); border-color: color-mix(in srgb, var(--green) 28%, var(--border)); background: var(--green-soft); }
+.watch-notify:disabled { opacity: .55; cursor: not-allowed; }
+.watch-alert-row { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
+.watch-alert-row span { padding: 4px 6px; border-radius: 999px; font-size: 7px; font-weight: 900; }
+.watch-alert-row span.buy { color: var(--green); background: var(--green-soft); }
+.watch-alert-row span.wait { color: var(--warning); background: var(--warning-soft); }
+.watch-alert-row span.avoid { color: var(--red); background: var(--red-soft); }
+.watch-alert-row span.brand { color: var(--brand); background: var(--brand-soft); }
+@media (max-width: 430px) {
+  .watch-heading-actions { display: grid; grid-template-columns: 1fr 1fr; margin-top: 8px; }
+  .watch-notify, .watch-refresh { width: 100%; margin-top: 0; }
 }

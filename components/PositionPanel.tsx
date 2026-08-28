@@ -27,7 +27,7 @@ export default function PositionPanel({ snapshot, entryDraft, analysis, onEntryD
           <h2>Position / Exit Planner</h2>
           <span>Nhập giá đã mua → theo dõi P/L • bảo vệ vốn • mục tiêu ngắn / trung / dài hạn</span>
         </div>
-        <span className="position-version">V0.4</span>
+        <span className="position-version">POSITIONS</span>
       </div>
 
       <div className="position-input-box">

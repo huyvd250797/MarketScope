@@ -256,3 +256,54 @@ export interface MarketProvider {
   readonly name: string;
   getSnapshot(symbol: string, interval: Interval): Promise<MarketSnapshot>;
 }
+
+export type WatchlistMonitorSnapshot = {
+  market: MarketType;
+  symbol: string;
+  displayName: string;
+  exchange: string;
+  provider: string;
+  interval: Interval;
+  currency: string;
+  currentPrice: number;
+  changePercent: number | null;
+  marketState: string;
+  dataAt: string;
+  regime: {
+    key: TechnicalAnalysis['regime']['key'];
+    label: string;
+    direction: TechnicalAnalysis['regime']['direction'];
+    confidence: number;
+  };
+  signal: {
+    decision: SignalDecision;
+    decisionLabel: string;
+    setup: SignalSetup;
+    setupLabel: string;
+    score: number;
+    scoreLabel: string;
+    entryZone: TradeSignal['entryZone'];
+    stopLoss: TradeSignal['stopLoss'];
+    targets: TradeSignal['targets'];
+  };
+  calibration: {
+    applicable: boolean;
+    quality: BacktestCalibration['quality'];
+    qualityLabel: string;
+    calibratedWinRate: number | null;
+    resolvedTrades: number;
+    expectancyR: number | null;
+    profitFactor: number | null;
+    estimatedTimeToTp1: string | null;
+    matchedBy: string;
+  };
+  warning?: string;
+};
+
+export type SavedPosition = {
+  market: MarketType;
+  symbol: string;
+  entryPrice: number;
+  interval: Interval;
+  savedAt: string;
+};
