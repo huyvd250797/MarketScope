@@ -1,39 +1,40 @@
 # Changelog
 
-## V0.3.0 — Entry / SL / TP Signal Engine
+## V0.4.0 — Position / Exit Analysis
 
-Nâng cấp trực tiếp từ V0.2.0 theo roadmap.
+Nâng cấp trực tiếp từ V0.3.0 theo roadmap.
 
 ### Added
 
-- Server-side LONG-only Signal Engine.
-- Decision: `BUY / WAIT / AVOID`.
-- Setup classification: Trend Pullback / Breakout / Range Rebound / No Setup.
-- Signal Score 0–100 với breakdown Trend, Momentum, Structure, Entry Location, Risk Quality.
-- Entry Zone Low / High / Midpoint.
-- Technical Stop Loss + risk %.
-- Invalidation conditions.
-- TP1 / TP2 / TP3 + profit % + R:R.
-- Pivot support/resistance và 20-bar volume ratio context.
-- Positive factors, warnings và guardrails.
-- Signal card tối ưu mobile.
-- Entry/SL/TP price lines và BUY/WAIT/AVOID marker trên Lightweight Charts.
-- Toggle `ENTRY/SL/TP` trên chart.
+- Position / Exit Planner ngay trong Analyze.
+- Nhập giá đã vào lệnh và tính P/L hiện tại.
+- Position status: `PROFIT / NEAR_ENTRY / LOSS / RISK`.
+- Rule-based action: HOLD / Protect Profit / Take Partial / Reduce Risk / Exit Risk.
+- Defensive Stop / Protect level theo ATR + EMA/VWAP + support/structure.
+- Break-even và trailing reference.
+- Exit targets ngắn hạn / trung hạn / dài hạn.
+- Horizon guide theo timeframe, ghi rõ không phải ETA.
+- Reasons / warnings / guardrails riêng cho vị thế đang nắm giữ.
+- `POSITION` overlay trên chart: Entry Actual, Protect/Stop, Exit S/M/L.
+- Positions tab hoạt động thật, lưu tối đa 30 giá vốn bằng localStorage.
+- Tự khôi phục giá vốn khi quay lại symbol đã lưu.
 
 ### Guardrails
 
 - LONG-only, không SHORT.
 - Không leverage recommendation.
 - Không auto trade.
-- Signal Score không phải win rate.
-- Win probability / expectancy / time-to-target để V0.5.0 sau backtest/calibration.
+- Không tự đề xuất tỷ trọng bán theo target.
+- Không win rate / probability / expectancy giả.
+- Time horizon không phải time-to-target prediction.
 
 ### Preserved
 
-- Market Data & Mobile Shell V0.1.0.
-- Indicator & Market Regime Engine V0.2.0.
+- V0.1.0 Market Data & Mobile Shell.
+- V0.2.0 Indicator & Market Regime Engine.
+- V0.3.0 Entry / SL / TP Signal Engine.
 - Standard Next.js deploy; không static export / không `out`.
 
 ### Next
 
-- V0.4.0 — Position / Exit Analysis: nhập điểm đã mua và phân tích chốt lời/thoát vị thế theo ngắn, trung, dài hạn.
+- V0.5.0 — Backtest & Win-rate Calibration.

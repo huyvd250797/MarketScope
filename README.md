@@ -1,74 +1,93 @@
-# MarketScope V0.3.0 — Entry / SL / TP Signal Engine
+# MarketScope V0.4.0 — Position / Exit Analysis
 
-V0.3.0 được nâng trực tiếp từ V0.2.0 theo đúng roadmap. Phiên bản này giữ toàn bộ Market Data + Indicator/Market Regime Engine và bổ sung lớp tạo **setup LONG rule-based**: `BUY / WAIT / AVOID`, Entry Zone, Stop Loss/Invalidation, TP1–TP3, R:R và Signal Score.
+V0.4.0 được nâng trực tiếp từ V0.3.0 theo đúng roadmap. Phiên bản này giữ toàn bộ Market Data, Indicator/Market Regime và Entry/SL/TP Signal Engine, đồng thời bổ sung **Position / Exit Planner** cho trường hợp người dùng đã vào lệnh và muốn quản trị điểm thoát/chốt lời.
 
 ## Version history
 
 - **V0.1.0 — Market Data & Mobile Shell:** hoàn thành.
 - **V0.2.0 — Indicator & Market Regime Engine:** hoàn thành.
-- **V0.3.0 — Entry / SL / TP Signal Engine:** phiên bản hiện tại.
-- **V0.4.0 — Position / Exit Analysis:** phiên bản tiếp theo theo roadmap.
-- **V0.5.0 — Backtest & Win-rate Calibration:** sau V0.4.0.
+- **V0.3.0 — Entry / SL / TP Signal Engine:** hoàn thành.
+- **V0.4.0 — Position / Exit Analysis:** phiên bản hiện tại.
+- **V0.5.0 — Backtest & Win-rate Calibration:** phiên bản tiếp theo theo roadmap.
 
-## Chức năng mới V0.3.0
+## Chức năng mới V0.4.0
 
-### Signal Engine — LONG-only
+### 1. Nhập giá đã vào lệnh
 
-Tín hiệu được tính server-side trên đúng symbol + timeframe đang xem, từ:
+Trong màn hình Analyze, sau khi tải dữ liệu của mã:
 
-- Market Regime.
-- EMA20 / EMA50 / EMA200.
-- RSI14.
-- MACD.
-- ADX + DI.
-- ATR.
-- VWAP.
-- Market Structure.
-- Pivot support/resistance.
-- Volume ratio 20 nến.
-- Khoảng cách giá hiện tại tới Entry Zone.
+- nhập **Giá đã vào lệnh**;
+- bấm **Phân tích vị thế**;
+- giá vốn được lưu bằng `localStorage` theo `market + symbol`;
+- khi quay lại mã đã lưu, MarketScope tự khôi phục giá vốn;
+- tab **Positions** hiển thị tối đa 30 vị thế đã lưu trên thiết bị.
 
-Engine trả về:
+V0.4.0 chưa có account/cloud sync. Dữ liệu vị thế không được gửi sang dịch vụ bên thứ ba.
 
-- `BUY`: rule kỹ thuật đủ đồng thuận, dữ liệu đủ và giá còn ở vùng có thể thực thi.
-- `WAIT`: setup đang hình thành nhưng chưa đạt guardrail hoặc giá đã chạy khỏi vùng Entry.
-- `AVOID`: regime/risk rule không phù hợp cho chiến lược LONG-only.
+### 2. Position status + P/L
 
-### Entry / Risk / Target
+Exit Planner tính:
 
-Khi có setup hợp lệ:
+- giá vốn;
+- giá hiện tại;
+- P/L %;
+- P/L trên mỗi đơn vị;
+- trạng thái `PROFIT / NEAR_ENTRY / LOSS / RISK`.
 
-- Entry Low / Entry High / Entry midpoint.
-- Stop Loss kỹ thuật dựa trên structure + ATR.
-- Invalidation conditions.
-- TP1 / TP2 / TP3.
-- Profit % từ Entry midpoint.
-- Reward/Risk tới từng TP.
-- Support / Resistance / ATR / Volume ratio context.
+### 3. Rule-based action
 
-### Signal Score 0–100
+Engine có thể trả:
 
-Score là tổng điểm rule-based, gồm:
+- `HOLD / THEO DÕI`;
+- `BẢO VỆ LỢI NHUẬN`;
+- `CÂN NHẮC CHỐT MỘT PHẦN`;
+- `GIẢM RỦI RO / ĐÁNH GIÁ LẠI`;
+- `MỐC RỦI RO ĐÃ BỊ PHÁ`.
 
-- Trend: tối đa 25.
-- Momentum: tối đa 20.
-- Structure: tối đa 20.
-- Entry Location: tối đa 20.
-- Risk Quality: tối đa 15.
+Các trạng thái được xác định từ P/L, ATR, EMA/VWAP, support/resistance, Market Regime và Market Structure. Đây là rule-based analysis, không phải lệnh giao dịch tự động.
 
-**Signal Score không phải xác suất thắng.** V0.3.0 tuyệt đối không suy diễn win rate từ score.
+### 4. Mốc bảo vệ vị thế
 
-### Chart
+Position Engine tạo:
 
-Lightweight Charts hiển thị thêm:
+- Defensive Stop / Protect level;
+- Break-even reference;
+- Trailing reference từ EMA20/VWAP/Support/EMA50;
+- risk % từ giá vốn khi stop còn dưới entry;
+- locked profit % khi vị thế đã đủ lãi để nâng protect level trên giá vốn.
 
-- marker `BUY / WAIT / AVOID` ở nến mới nhất;
-- Entry Low / Entry High;
-- SL;
-- TP1 / TP2 / TP3;
-- toggle `ENTRY/SL/TP` độc lập với EMA/VWAP.
+Nếu giá hiện tại đã phá mốc bảo vệ, engine ưu tiên cảnh báo `EXIT_RISK` thay vì mặc định tiếp tục HOLD.
 
-## Kế thừa V0.1.0–V0.2.0
+### 5. Exit Planner ngắn / trung / dài hạn
+
+Tạo 3 mốc:
+
+- **Ngắn hạn**;
+- **Trung hạn**;
+- **Dài hạn**.
+
+Target dùng ATR kết hợp pivot/kháng cự gần nhất. Mỗi target hiển thị:
+
+- target price;
+- % từ giá vốn;
+- % còn cách giá hiện tại;
+- horizon planning tương ứng timeframe.
+
+Horizon chỉ là **khung lập kế hoạch**, không phải ETA chắc chắn để giá chạm mục tiêu.
+
+### 6. Chart Position Overlay
+
+Chart có toggle `POSITION` riêng, hiển thị:
+
+- `ENTRY ACT` — giá đã mua;
+- `POS STOP` hoặc `PROTECT`;
+- `EXIT S` — ngắn hạn;
+- `EXIT M` — trung hạn;
+- `EXIT L` — dài hạn.
+
+Overlay Position tách biệt với `ENTRY/SL/TP` của Signal Engine V0.3.0.
+
+## Kế thừa V0.1.0–V0.3.0
 
 - Toggle Crypto / Stock VN.
 - Binance public crypto market data.
@@ -76,17 +95,22 @@ Lightweight Charts hiển thị thêm:
 - Candlestick + Volume.
 - EMA20/50/200, RSI14, MACD, ADX14, ATR14, VWAP.
 - Market Structure + Market Regime.
+- `BUY / WAIT / AVOID`.
+- Signal Score 0–100.
+- Entry Zone, Stop Loss, Invalidation, TP1–TP3, R:R.
 - PWA, mobile-first, Dark / Light / Auto.
 - Autocomplete, recent symbols.
 
-## Guardrails
+## Guardrails V0.4.0
 
-- V0.3.0 là **LONG-only**; không tạo tín hiệu SHORT.
+- LONG-only; không tạo SHORT.
 - Không khuyến nghị leverage.
 - Không auto trade.
-- `WAIT` có thể hiển thị vùng Entry đang chờ; `AVOID` không tạo vùng mua mới.
-- Không mua đuổi khi giá đã vượt xa Entry Zone.
-- Win rate / expectancy / time-to-target chưa xuất hiện ở V0.3.0.
+- Không tự quyết định tỷ trọng bán ở từng target vì V0.4.0 chưa có portfolio sizing.
+- Không hiển thị win rate / probability / expectancy giả.
+- Signal Score không phải xác suất thắng.
+- Time horizon không phải dự đoán time-to-target.
+- **V0.5.0** mới bổ sung backtest, calibration, win-rate và expectancy theo setup/timeframe/regime.
 
 ## Chạy local
 
@@ -112,11 +136,11 @@ npm run build
 3. Framework Preset: `Next.js`.
 4. Build/Install command: Default.
 5. **Output Directory: để trống. Không nhập `out`.**
-6. Crypto có thể dùng ngay không cần API key.
+6. Crypto dùng được không cần API key.
 7. Stock VN: cấu hình SSI trong Vercel Environment Variables nếu muốn provider chính.
 
 Xem thêm `DEPLOY-VERCEL.md`.
 
 ## Lưu ý tài chính
 
-MarketScope là công cụ phân tích kỹ thuật tự động. `BUY / WAIT / AVOID`, Entry, SL và TP là kết quả của rule engine trên dữ liệu OHLCV, không phải bảo đảm lợi nhuận hay dịch vụ tư vấn đầu tư cá nhân. Người dùng phải tự đánh giá rủi ro trước khi giao dịch.
+MarketScope là công cụ phân tích kỹ thuật tự động. Signal, Entry, SL, TP, Protect level và Exit targets là kết quả rule-based trên dữ liệu OHLCV và giá vốn người dùng nhập. Không có target nào đảm bảo lợi nhuận. Người dùng phải tự đánh giá rủi ro và tính phù hợp trước khi giao dịch.

@@ -59,7 +59,7 @@ async function fetchYahoo(symbol: string, interval: string, range: string): Prom
     next: { revalidate: 30 },
     headers: {
       Accept: 'application/json',
-      'User-Agent': 'Mozilla/5.0 (compatible; MarketScope/0.3.0)',
+      'User-Agent': 'Mozilla/5.0 (compatible; MarketScope/0.4.0)',
     },
   });
   if (!response.ok) throw new Error(`Yahoo HTTP ${response.status}`);
@@ -99,7 +99,7 @@ export class YahooVietnamStockProvider implements MarketProvider {
 
   async getSnapshot(symbol: string, interval: Interval): Promise<MarketSnapshot> {
     if (interval === '4h') {
-      throw new Error('Chứng khoán V0.3.0 chưa hỗ trợ timeframe 4h');
+      throw new Error('Chứng khoán V0.4.0 chưa hỗ trợ timeframe 4h');
     }
     const cfg = intervalMap[interval];
     let result: YahooResult | undefined;

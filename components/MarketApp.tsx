@@ -4,12 +4,15 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MarketChart, { type ChartOverlays } from './MarketChart';
 import TechnicalAnalysisPanel from './TechnicalAnalysisPanel';
 import SignalPanel from './SignalPanel';
-import type { Interval, MarketSnapshot, MarketType, SymbolItem } from '@/lib/market/types';
+import PositionPanel from './PositionPanel';
+import { analyzePositionExit } from '@/lib/analysis/position';
+import type { Interval, MarketSnapshot, MarketType, PositionExitAnalysis, SymbolItem } from '@/lib/market/types';
 
 type ThemePreference = 'auto' | 'light' | 'dark';
 type NavKey = 'analyze' | 'watchlist' | 'positions' | 'history' | 'settings';
 
 type ApiError = { error?: string; correlationId?: string };
+type SavedPosition = { market: MarketType; symbol: string; entryPrice: number; interval: Interval; savedAt: string };
 
 const cryptoIntervals: Interval[] = ['15m', '1h', '4h', '1d', '1w'];
 const stockIntervals: Interval[] = ['15m', '1h', '1d', '1w'];
@@ -32,8 +35,12 @@ export default function MarketApp() {
   const [themePref, setThemePref] = useState<ThemePreference>('auto');
   const [dark, setDark] = useState(false);
   const [nav, setNav] = useState<NavKey>('analyze');
-  const [overlays, setOverlays] = useState<ChartOverlays>({ ema20: true, ema50: true, ema200: true, vwap: true, signals: true });
+  const [overlays, setOverlays] = useState<ChartOverlays>({ ema20: true, ema50: true, ema200: true, vwap: true, signals: true, position: true });
   const [recent, setRecent] = useState<Record<MarketType, string[]>>({ CRYPTO: [], STOCK: [] });
+  const [savedPositions, setSavedPositions] = useState<SavedPosition[]>([]);
+  const [entryDraft, setEntryDraft] = useState('');
+  const [activeEntryPrice, setActiveEntryPrice] = useState<number | null>(null);
+  const [positionInputError, setPositionInputError] = useState<string | null>(null);
   const requestRef = useRef(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -56,6 +63,13 @@ export default function MarketApp() {
       setRecent({ CRYPTO: savedRecent.CRYPTO || [], STOCK: savedRecent.STOCK || [] });
     } catch {
       // Ignore corrupt local storage.
+    }
+
+    try {
+      const stored = JSON.parse(localStorage.getItem('marketscope-positions') || '[]') as SavedPosition[];
+      setSavedPositions(Array.isArray(stored) ? stored.filter((item) => item && item.entryPrice > 0) : []);
+    } catch {
+      setSavedPositions([]);
     }
 
     const mq = window.matchMedia('(prefers-color-scheme: dark)');
@@ -122,6 +136,18 @@ export default function MarketApp() {
     // load only when market/symbol/interval actually changes
   }, [market, symbol, interval, loadMarket]);
 
+  useEffect(() => {
+    const saved = savedPositions.find((item) => item.market === market && item.symbol === symbol);
+    if (saved) {
+      setEntryDraft(String(saved.entryPrice));
+      setActiveEntryPrice(saved.entryPrice);
+    } else {
+      setEntryDraft('');
+      setActiveEntryPrice(null);
+    }
+    setPositionInputError(null);
+  }, [market, symbol, savedPositions]);
+
   const switchMarket = (nextMarket: MarketType) => {
     if (nextMarket === market) return;
     const next = defaults[nextMarket];
@@ -162,6 +188,66 @@ export default function MarketApp() {
     setSymbol(normalized);
   };
 
+  const positionAnalysis = useMemo<PositionExitAnalysis | null>(() => {
+    if (!snapshot?.analysis || activeEntryPrice == null) return null;
+    try {
+      return analyzePositionExit(snapshot.candles, market, interval, snapshot.analysis, snapshot.signal, activeEntryPrice);
+    } catch {
+      return null;
+    }
+  }, [snapshot, market, interval, activeEntryPrice]);
+
+  const analyzePosition = () => {
+    const parsed = parseEntryPrice(entryDraft, snapshot?.currentPrice || 0);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      setPositionInputError('Vui lòng nhập giá vào lệnh hợp lệ lớn hơn 0.');
+      return;
+    }
+    const normalizedSymbol = snapshot?.symbol || symbol;
+    const saved: SavedPosition = { market, symbol: normalizedSymbol, entryPrice: parsed, interval, savedAt: new Date().toISOString() };
+    setActiveEntryPrice(parsed);
+    setPositionInputError(null);
+    setSavedPositions((prev) => {
+      const next = [saved, ...prev.filter((item) => !(item.market === market && item.symbol === normalizedSymbol))].slice(0, 30);
+      localStorage.setItem('marketscope-positions', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const clearCurrentPosition = () => {
+    const normalizedSymbol = snapshot?.symbol || symbol;
+    setActiveEntryPrice(null);
+    setEntryDraft('');
+    setPositionInputError(null);
+    setSavedPositions((prev) => {
+      const next = prev.filter((item) => !(item.market === market && item.symbol === normalizedSymbol));
+      localStorage.setItem('marketscope-positions', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const openSavedPosition = (item: SavedPosition) => {
+    setMarket(item.market);
+    setSymbol(item.symbol);
+    setQuery(item.symbol);
+    setInterval(item.interval);
+    setEntryDraft(String(item.entryPrice));
+    setActiveEntryPrice(item.entryPrice);
+    setNav('analyze');
+  };
+
+  const deleteSavedPosition = (item: SavedPosition) => {
+    setSavedPositions((prev) => {
+      const next = prev.filter((entry) => !(entry.market === item.market && entry.symbol === item.symbol));
+      localStorage.setItem('marketscope-positions', JSON.stringify(next));
+      return next;
+    });
+    if (item.market === market && item.symbol === symbol) {
+      setActiveEntryPrice(null);
+      setEntryDraft('');
+    }
+  };
+
   const priceDigits = useMemo(() => snapshot?.currency === 'VND' ? 0 : ((snapshot?.currentPrice || 0) >= 1000 ? 2 : 6), [snapshot]);
   const changePositive = (snapshot?.changePercent || 0) >= 0;
 
@@ -173,9 +259,9 @@ export default function MarketApp() {
           <div>
             <div className="brand-row">
               <strong>MarketScope</strong>
-              <span className="version-badge">V0.3.0</span>
+              <span className="version-badge">V0.4.0</span>
             </div>
-            <span className="brand-sub">Entry • SL • TP Signal Engine</span>
+            <span className="brand-sub">Position • Exit • Profit Planner</span>
           </div>
         </div>
         <button className="theme-button" onClick={() => setNav('settings')} aria-label="Cài đặt giao diện">
@@ -186,6 +272,8 @@ export default function MarketApp() {
       <section className="content">
         {nav === 'settings' ? (
           <SettingsPanel themePref={themePref} onTheme={setTheme} onBack={() => setNav('analyze')} />
+        ) : nav === 'positions' ? (
+          <PositionsPanel positions={savedPositions} onOpen={openSavedPosition} onDelete={deleteSavedPosition} onBack={() => setNav('analyze')} />
         ) : nav !== 'analyze' ? (
           <ComingSoon nav={nav} onBack={() => setNav('analyze')} />
         ) : (
@@ -276,12 +364,26 @@ export default function MarketApp() {
               ) : null}
             </section>
 
+            {!loading && snapshot?.analysis && (
+              <>
+                <PositionPanel
+                  snapshot={snapshot}
+                  entryDraft={entryDraft}
+                  analysis={positionAnalysis}
+                  onEntryDraft={(value) => { setEntryDraft(value); setPositionInputError(null); }}
+                  onAnalyze={analyzePosition}
+                  onClear={clearCurrentPosition}
+                />
+                {positionInputError && <div className="position-input-error">! {positionInputError}</div>}
+              </>
+            )}
+
             {!loading && snapshot?.signal && <SignalPanel signal={snapshot.signal} snapshot={snapshot} />}
             {!loading && snapshot?.analysis && <TechnicalAnalysisPanel analysis={snapshot.analysis} snapshot={snapshot} />}
 
             <section className="chart-card">
               <div className="section-title-row">
-                <div><h2>Biểu đồ giá</h2><span>Candlestick + Volume + Indicator & Signal levels</span></div>
+                <div><h2>Biểu đồ giá</h2><span>Candlestick + Volume + Indicator + Signal + Position levels</span></div>
                 <span className="data-count">{snapshot?.candles.length || 0} nến</span>
               </div>
               <div className="timeframe-row">
@@ -295,19 +397,20 @@ export default function MarketApp() {
                 <OverlayButton label="EMA200" active={overlays.ema200} onClick={() => setOverlays((prev) => ({ ...prev, ema200: !prev.ema200 }))} tone="ema200" />
                 <OverlayButton label="VWAP" active={overlays.vwap} onClick={() => setOverlays((prev) => ({ ...prev, vwap: !prev.vwap }))} tone="vwap" />
                 <OverlayButton label="ENTRY/SL/TP" active={overlays.signals} onClick={() => setOverlays((prev) => ({ ...prev, signals: !prev.signals }))} tone="signal" />
+                <OverlayButton label="POSITION" active={overlays.position} onClick={() => setOverlays((prev) => ({ ...prev, position: !prev.position }))} tone="position" />
               </div>
-              {loading ? <div className="chart-loading"><div className="pulse" /></div> : snapshot ? <MarketChart candles={snapshot.candles} analysis={snapshot.analysis} signal={snapshot.signal} overlays={overlays} dark={dark} currency={snapshot.currency} /> : <div className="chart-empty">Không có dữ liệu chart</div>}
+              {loading ? <div className="chart-loading"><div className="pulse" /></div> : snapshot ? <MarketChart candles={snapshot.candles} analysis={snapshot.analysis} signal={snapshot.signal} position={positionAnalysis} overlays={overlays} dark={dark} currency={snapshot.currency} /> : <div className="chart-empty">Không có dữ liệu chart</div>}
             </section>
 
             <section className="roadmap-card">
               <div className="roadmap-icon">↗</div>
               <div>
-                <strong>Đúng roadmap V0.3.0</strong>
-                <p>Đã có Signal Score, BUY / WAIT / AVOID, Entry Zone, Invalidation, SL, TP1–TP3, R:R và đánh dấu trực tiếp trên chart. Position/Exit Planner thuộc V0.4.0; backtest/win rate thuộc V0.5.0.</p>
+                <strong>Đúng roadmap V0.4.0</strong>
+                <p>Đã có Position / Exit Planner: nhập giá vốn, P/L hiện tại, mốc bảo vệ, target ngắn/trung/dài hạn, lưu vị thế local và vẽ trực tiếp lên chart. Backtest, win rate và expectancy vẫn thuộc V0.5.0.</p>
               </div>
             </section>
 
-            <p className="disclaimer">MarketScope V0.3.0 tạo setup LONG rule-based để tham khảo, không tự đặt lệnh và không đảm bảo lợi nhuận. Signal Score không phải xác suất thắng; win rate chỉ được phép hiển thị sau backtest ở V0.5.0.</p>
+            <p className="disclaimer">MarketScope V0.4.0 phân tích setup và vị thế LONG rule-based để tham khảo, không tự đặt lệnh và không đảm bảo lợi nhuận. Khung ngắn/trung/dài hạn không phải ETA; win rate/expectancy chỉ xuất hiện sau backtest ở V0.5.0.</p>
           </>
         )}
       </section>
@@ -331,7 +434,7 @@ function NavButton({ active, icon, label, onClick }: { active: boolean; icon: st
   return <button className={active ? 'active' : ''} onClick={onClick}><span>{icon}</span><small>{label}</small></button>;
 }
 
-function OverlayButton({ label, active, onClick, tone }: { label: string; active: boolean; onClick: () => void; tone: 'ema20' | 'ema50' | 'ema200' | 'vwap' | 'signal' }) {
+function OverlayButton({ label, active, onClick, tone }: { label: string; active: boolean; onClick: () => void; tone: 'ema20' | 'ema50' | 'ema200' | 'vwap' | 'signal' | 'position' }) {
   return <button className={`overlay-chip ${tone} ${active ? 'active' : ''}`} onClick={onClick}><i />{label}</button>;
 }
 
@@ -339,7 +442,7 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
   return (
     <section className="panel-page">
       <button className="back-button" onClick={onBack}>← Quay lại</button>
-      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.3.0.</p></div>
+      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.4.0.</p></div>
       <div className="settings-card">
         <strong>Giao diện</strong>
         <p>Dark / Light / Auto được lưu trên thiết bị.</p>
@@ -358,16 +461,41 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
       </div>
       <div className="settings-card muted-card">
         <strong>Phiên bản</strong>
-        <p>MarketScope V0.3.0 — Entry / SL / TP Signal Engine.</p>
+        <p>MarketScope V0.4.0 — Position / Exit Analysis.</p>
       </div>
     </section>
   );
 }
 
-function ComingSoon({ nav, onBack }: { nav: Exclude<NavKey, 'analyze' | 'settings'>; onBack: () => void }) {
+function PositionsPanel({ positions, onOpen, onDelete, onBack }: { positions: SavedPosition[]; onOpen: (item: SavedPosition) => void; onDelete: (item: SavedPosition) => void; onBack: () => void }) {
+  return (
+    <section className="panel-page">
+      <button className="back-button" onClick={onBack}>← Quay lại</button>
+      <div className="panel-heading"><h1>Positions</h1><p>Các giá vốn đã lưu trên thiết bị • tối đa 30 mã.</p></div>
+      {positions.length === 0 ? (
+        <div className="positions-empty"><span>◎</span><strong>Chưa có vị thế đã lưu</strong><p>Vào Analyze, nhập “Giá đã vào lệnh” và bấm Phân tích vị thế.</p><button className="primary-button" onClick={onBack}>Về Analyze</button></div>
+      ) : (
+        <div className="positions-list">
+          {positions.map((item) => (
+            <article className="saved-position" key={`${item.market}-${item.symbol}`}>
+              <button className="saved-position-main" onClick={() => onOpen(item)}>
+                <span className="saved-position-market">{item.market === 'CRYPTO' ? 'CRYPTO' : 'STOCK VN'}</span>
+                <strong>{item.symbol}</strong>
+                <small>Giá vốn: {new Intl.NumberFormat(item.market === 'STOCK' ? 'vi-VN' : 'en-US', { maximumFractionDigits: item.market === 'STOCK' ? 0 : 8 }).format(item.entryPrice)} • {formatInterval(item.interval)}</small>
+              </button>
+              <button className="saved-position-delete" aria-label={`Xóa vị thế ${item.symbol}`} onClick={() => onDelete(item)}>×</button>
+            </article>
+          ))}
+        </div>
+      )}
+      <div className="settings-card muted-card"><strong>Lưu trữ V0.4.0</strong><p>Positions đang dùng localStorage trên thiết bị. Chưa có đồng bộ tài khoản/cloud ở phiên bản này.</p></div>
+    </section>
+  );
+}
+
+function ComingSoon({ nav, onBack }: { nav: Exclude<NavKey, 'analyze' | 'positions' | 'settings'>; onBack: () => void }) {
   const map = {
     watchlist: ['Watchlist', 'Theo roadmap: V0.6.0'],
-    positions: ['Positions', 'Theo roadmap: V0.4.0'],
     history: ['History', 'Sẽ hoàn thiện cùng storage ở các phiên bản tiếp theo'],
   } as const;
   return (
@@ -390,6 +518,29 @@ function ErrorState({ message, correlationId, onRetry }: { message: string; corr
       <span>!</span><div><strong>Không tải được dữ liệu</strong><p>{message}</p>{correlationId && <small>ID: {correlationId}</small>}</div><button onClick={onRetry}>Thử lại</button>
     </div>
   );
+}
+
+function parseEntryPrice(value: string, referencePrice: number) {
+  const raw = value.trim().replace(/\s/g, '');
+  if (!raw) return Number.NaN;
+  const candidates = new Set<number>();
+  const push = (candidate: string) => {
+    const parsed = Number(candidate);
+    if (Number.isFinite(parsed) && parsed > 0) candidates.add(parsed);
+  };
+  push(raw);
+  push(raw.replace(/,/g, ''));
+  push(raw.replace(/\./g, ''));
+  if (raw.includes(',') && !raw.includes('.')) push(raw.replace(',', '.'));
+  if (raw.includes('.') && !raw.includes(',')) push(raw.replace('.', ','));
+  if (raw.includes(',') && raw.includes('.')) {
+    push(raw.replace(/,/g, ''));
+    push(raw.replace(/\./g, '').replace(',', '.'));
+  }
+  const values = [...candidates];
+  if (!values.length) return Number.NaN;
+  if (!(referencePrice > 0)) return values[0];
+  return values.sort((a, b) => Math.abs(Math.log(a / referencePrice)) - Math.abs(Math.log(b / referencePrice)))[0];
 }
 
 function formatPrice(value: number, currency: string, digits: number) {
