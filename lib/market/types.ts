@@ -89,6 +89,55 @@ export type TradeSignal = {
   disclaimer: string;
 };
 
+export type PositionStatus = 'PROFIT' | 'NEAR_ENTRY' | 'LOSS' | 'RISK';
+
+export type PositionAction = 'HOLD' | 'PROTECT_PROFIT' | 'TAKE_PARTIAL' | 'REDUCE_RISK' | 'EXIT_RISK';
+
+export type PositionExitAnalysis = {
+  calculatedAt: string;
+  entryPrice: number;
+  currentPrice: number;
+  pnlPercent: number;
+  pnlPerUnit: number;
+  status: PositionStatus;
+  statusLabel: string;
+  action: PositionAction;
+  actionLabel: string;
+  horizonGuide: { short: string; medium: string; long: string; note: string };
+  protection: {
+    defensiveStop: number;
+    trailingReference: number | null;
+    breakEven: number;
+    riskFromEntryPercent: number;
+    lockedProfitPercent: number | null;
+    breached: boolean;
+    note: string;
+  };
+  exits: Array<{
+    key: 'SHORT' | 'MEDIUM' | 'LONG';
+    label: string;
+    target: number;
+    profitPercent: number;
+    distanceFromCurrentPercent: number;
+    horizon: string;
+    note: string;
+  }>;
+  context: {
+    atr: number;
+    atrPercent: number | null;
+    support: number | null;
+    resistance: number | null;
+    ema20: number | null;
+    ema50: number | null;
+    vwap: number | null;
+    regime: TechnicalAnalysis['regime']['key'];
+  };
+  reasons: string[];
+  warnings: string[];
+  guardrails: string[];
+  disclaimer: string;
+};
+
 export type SymbolItem = {
   symbol: string;
   name: string;

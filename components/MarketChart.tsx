@@ -10,7 +10,7 @@ import {
   createSeriesMarkers,
   type UTCTimestamp,
 } from 'lightweight-charts';
-import type { Candle, TechnicalAnalysis, TradeSignal } from '@/lib/market/types';
+import type { Candle, PositionExitAnalysis, TechnicalAnalysis, TradeSignal } from '@/lib/market/types';
 
 export type ChartOverlays = {
   ema20: boolean;
@@ -18,18 +18,20 @@ export type ChartOverlays = {
   ema200: boolean;
   vwap: boolean;
   signals: boolean;
+  position: boolean;
 };
 
 type Props = {
   candles: Candle[];
   analysis?: TechnicalAnalysis;
   signal?: TradeSignal;
+  position?: PositionExitAnalysis | null;
   overlays: ChartOverlays;
   dark: boolean;
   currency: string;
 };
 
-export default function MarketChart({ candles, analysis, signal, overlays, dark, currency }: Props) {
+export default function MarketChart({ candles, analysis, signal, position, overlays, dark, currency }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -117,25 +119,25 @@ export default function MarketChart({ candles, analysis, signal, overlays, dark,
     addLine(overlays.ema200, analysis?.series.ema200, '#8c6de8', 2);
     addLine(overlays.vwap, analysis?.series.vwap, '#2f8de4', 1);
 
-    if (overlays.signals && signal) {
-      const line = (price: number | null | undefined, title: string, color: string, width: 1 | 2 = 1) => {
-        if (price == null || !Number.isFinite(price)) return;
-        candleSeries.createPriceLine({
-          price,
-          color,
-          lineWidth: width,
-          axisLabelVisible: true,
-          title,
-        });
-      };
+    const addPriceLine = (price: number | null | undefined, title: string, color: string, width: 1 | 2 = 1) => {
+      if (price == null || !Number.isFinite(price)) return;
+      candleSeries.createPriceLine({
+        price,
+        color,
+        lineWidth: width,
+        axisLabelVisible: true,
+        title,
+      });
+    };
 
+    if (overlays.signals && signal) {
       if (signal.entryZone) {
-        line(signal.entryZone.low, 'ENTRY L', '#2f8de4');
-        line(signal.entryZone.high, 'ENTRY H', '#2f8de4');
+        addPriceLine(signal.entryZone.low, 'ENTRY L', '#2f8de4');
+        addPriceLine(signal.entryZone.high, 'ENTRY H', '#2f8de4');
       }
-      line(signal.stopLoss?.price, 'SL', '#ef5b67', 2);
+      addPriceLine(signal.stopLoss?.price, 'SL', '#ef5b67', 2);
       signal.targets.forEach((target, index) => {
-        line(target.price, target.key, index === 0 ? '#21a67a' : index === 1 ? '#13a06f' : '#0b845d');
+        addPriceLine(target.price, target.key, index === 0 ? '#21a67a' : index === 1 ? '#13a06f' : '#0b845d');
       });
 
       const last = candles[candles.length - 1];
@@ -147,6 +149,14 @@ export default function MarketChart({ candles, analysis, signal, overlays, dark,
             : { time: last.time as UTCTimestamp, position: 'aboveBar' as const, color: '#e1a52b', shape: 'circle' as const, text: 'WAIT' };
         createSeriesMarkers(candleSeries, [marker]);
       }
+    }
+
+    if (overlays.position && position) {
+      addPriceLine(position.entryPrice, 'ENTRY ACT', '#6d7ce8', 2);
+      addPriceLine(position.protection.defensiveStop, position.protection.lockedProfitPercent != null ? 'PROTECT' : 'POS STOP', '#ef5b67', 2);
+      position.exits.forEach((exit, index) => {
+        addPriceLine(exit.target, index === 0 ? 'EXIT S' : index === 1 ? 'EXIT M' : 'EXIT L', index === 0 ? '#e1a52b' : index === 1 ? '#21a67a' : '#8c6de8');
+      });
     }
 
     chart.timeScale().fitContent();
@@ -161,9 +171,9 @@ export default function MarketChart({ candles, analysis, signal, overlays, dark,
       observer.disconnect();
       chart.remove();
     };
-  }, [candles, analysis, signal, overlays, dark, currency]);
+  }, [candles, analysis, signal, position, overlays, dark, currency]);
 
-  return <div ref={containerRef} className="chart-canvas" aria-label="Biểu đồ nến với EMA, VWAP và mức Entry SL TP" />;
+  return <div ref={containerRef} className="chart-canvas" aria-label="Biểu đồ nến với EMA, VWAP, Signal levels và Position Exit levels" />;
 }
 
 function formatCompactPrice(value: number, currency: string): string {

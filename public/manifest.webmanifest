@@ -1,7 +1,7 @@
 {
   "name": "MarketScope",
   "short_name": "MarketScope",
-  "description": "Crypto Spot & Vietnam Stock Entry, SL and TP technical signal engine",
+  "description": "Crypto Spot & Vietnam Stock Entry, SL, TP and Position Exit analysis",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#071018",
