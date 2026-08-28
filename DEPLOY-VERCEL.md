@@ -9,7 +9,7 @@ Trong thư mục source:
 ```bash
 git init
 git add .
-git commit -m "MarketScope V0.4.0"
+git commit -m "MarketScope V0.5.0"
 git branch -M main
 git remote add origin <GITHUB_REPO_URL>
 git push -u origin main
@@ -45,9 +45,11 @@ Vào Vercel → Project → Settings → Environment Variables, thêm các biế
 ### 4. Kiểm tra sau deploy
 
 - Mở mobile Safari/Chrome.
-- CRYPTO → BTCUSDT → 1h: phải có giá, chart, Market Regime, Trade Setup và Position / Exit Planner.
+- CRYPTO → BTCUSDT → 1h: phải có giá, chart, Market Regime, Trade Setup, Position / Exit Planner và Backtest / Calibration.
 - Kiểm tra EMA20/50/200, RSI14, MACD, ADX14, ATR14, VWAP có giá trị.
 - Kiểm tra BUY / WAIT / AVOID, Signal Score và Entry/SL/TP khi có setup.
+- Kiểm tra Backtest: Filled/Win/Loss/Timeout, Win rate, Calibrated rate, Expectancy, Profit Factor và Validation window.
+- Nếu current signal là WAIT/AVOID, calibration phải hiển thị không áp dụng probability cho lệnh hiện tại.
 - Nhập giá vốn BTCUSDT → Phân tích vị thế → kiểm tra P/L, Protect/Stop, target ngắn/trung/dài.
 - Mở tab Positions → phải thấy BTCUSDT đã lưu; quay lại Analyze phải khôi phục giá vốn.
 - Bật/tắt EMA20 / EMA50 / EMA200 / VWAP / ENTRY-SL-TP / POSITION trên chart.

@@ -272,10 +272,10 @@ export function analyzeTradeSignal(candles: Candle[], market: MarketType, analys
     positiveFactors,
     warnings,
     guardrails: [
-      'LONG-only: V0.3.0 không tạo lệnh SHORT và không khuyến nghị đòn bẩy.',
+      'LONG-only: MarketScope hiện không tạo lệnh SHORT và không khuyến nghị đòn bẩy.',
       'Signal Score là điểm đồng thuận rule-based, không phải xác suất thắng.',
       'Không mua đuổi nếu giá đã vượt xa Entry Zone; chờ setup mới hoặc retest.',
-      'Win rate, expectancy và time-to-target chỉ được hiển thị sau backtest/calibration ở V0.5.0.',
+      'Win rate/expectancy V0.5.0 được tính riêng từ backtest lịch sử; không suy diễn trực tiếp từ Signal Score.',
     ],
     disclaimer: 'Tín hiệu được tạo tự động từ OHLCV và chỉ báo kỹ thuật, mang tính tham khảo. Không có tín hiệu nào đảm bảo lợi nhuận; luôn tự đánh giá rủi ro trước khi giao dịch.',
   };

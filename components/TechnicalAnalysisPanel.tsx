@@ -85,7 +85,7 @@ export default function TechnicalAnalysisPanel({ analysis, snapshot }: Props) {
 
       <div className="analysis-note">
         <span>i</span>
-        <p>Market Regime và indicator là lớp dữ liệu đầu vào cho Signal Engine V0.3.0. <b>Signal Score không phải xác suất thắng.</b> Win rate/expectancy chỉ xuất hiện sau backtest và calibration ở V0.5.0.</p>
+        <p>Market Regime và indicator là lớp dữ liệu đầu vào cho Signal Engine V0.3.0. <b>Signal Score không phải xác suất thắng.</b> Win rate/expectancy V0.5.0 nằm ở Backtest & Calibration và không được suy ra trực tiếp từ indicator/regime.</p>
       </div>
     </section>
   );

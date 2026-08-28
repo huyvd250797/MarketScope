@@ -4,8 +4,8 @@ import type { Candle, Interval, MarketProvider, MarketSnapshot } from './types';
 const intervalMap: Record<Exclude<Interval, '4h'>, { interval: string; range: string }> = {
   '15m': { interval: '15m', range: '1mo' },
   '1h': { interval: '1h', range: '3mo' },
-  '1d': { interval: '1d', range: '1y' },
-  '1w': { interval: '1wk', range: '5y' },
+  '1d': { interval: '1d', range: '3y' },
+  '1w': { interval: '1wk', range: '10y' },
 };
 
 type YahooResult = {
@@ -59,7 +59,7 @@ async function fetchYahoo(symbol: string, interval: string, range: string): Prom
     next: { revalidate: 30 },
     headers: {
       Accept: 'application/json',
-      'User-Agent': 'Mozilla/5.0 (compatible; MarketScope/0.4.0)',
+      'User-Agent': 'Mozilla/5.0 (compatible; MarketScope/0.5.0)',
     },
   });
   if (!response.ok) throw new Error(`Yahoo HTTP ${response.status}`);
@@ -99,7 +99,7 @@ export class YahooVietnamStockProvider implements MarketProvider {
 
   async getSnapshot(symbol: string, interval: Interval): Promise<MarketSnapshot> {
     if (interval === '4h') {
-      throw new Error('Chứng khoán V0.4.0 chưa hỗ trợ timeframe 4h');
+      throw new Error('Chứng khoán V0.5.0 chưa hỗ trợ timeframe 4h');
     }
     const cfg = intervalMap[interval];
     let result: YahooResult | undefined;

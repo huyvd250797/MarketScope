@@ -127,7 +127,7 @@ export default function PositionPanel({ snapshot, entryDraft, analysis, onEntryD
                 <ContextMetric label="VWAP" value={formatNullable(analysis.context.vwap, digits)} />
                 <ContextMetric label="ATR" value={formatPrice(analysis.context.atr, digits)} />
               </div>
-              <strong>Nguyên tắc V0.4.0</strong>
+              <strong>Nguyên tắc Position Engine</strong>
               {analysis.guardrails.map((item) => <p key={item}>• {item}</p>)}
             </div>
           </details>
