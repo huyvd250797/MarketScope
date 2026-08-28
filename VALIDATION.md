@@ -1,44 +1,40 @@
-# Validation — MarketScope V0.5.0
+# Validation — MarketScope V0.6.0
 
-## Type / source validation
+## Source / Type validation
 
-- Core strict TypeScript check cho `types + technical + signal + backtest`: **PASS**.
-- Full TS/TSX semantic check bằng TypeScript 5.8.3 + offline stubs Next/React/Lightweight Charts/SSI: **PASS**.
-- JSON / manifest parse: kiểm tra trước khi đóng ZIP.
-- Local import resolution: kiểm tra trước khi đóng ZIP.
+- TypeScript 5.8.3 offline semantic check toàn bộ `app/components/lib`: **PASS**.
+- Offline stubs chỉ được dùng để thay external type packages do sandbox không cài npm được; stubs không được đóng vào ZIP release.
+- New `/api/market/monitor` route: **PASS typecheck**.
+- New Watchlist / Positions workspace: **PASS typecheck**.
+- Notification Service Worker handler: kiểm tra source/integrity trước khi đóng ZIP.
 
-## Backtest smoke tests
+## Functional source checks
 
-- 1.000 synthetic candles: **PASS**.
-- Latest potentially-live candle excluded from historical sample: **PASS**.
-- Trade accounting invariant `WIN + LOSS + TIMEOUT = Filled`: **PASS**.
-- Raw / calibrated win rate luôn nằm trong 0–100: **PASS**.
-- WAIT/AVOID current signal → `calibration.applicable = false`: **PASS**.
-- Synthetic BUY current signal → `calibration.applicable = true`: **PASS**.
-- BUY với sample quá nhỏ → quality `INSUFFICIENT` thay vì coi 100% raw win rate là đáng tin: **PASS**.
-- Beta(2,2) shrinkage hoạt động: synthetic 3/3 wins → raw 100%, calibrated 71.4%: **PASS**.
-- Validation stability gap được tính theo calibration cohort tương ứng: **PASS**.
-- Same-candle ambiguity được xử lý theo hướng SL-first trong code path: **PASS**.
-- Backtest trades chạy sequential/non-overlap benchmark: **PASS**.
+- Analyze không render `PositionPanel`: **PASS**.
+- Analyze chart không render Position overlay: **PASS**.
+- Positions module render `PositionPanel` + Position chart: **PASS**.
+- Watchlist persist `marketscope-watchlist`: **PASS source path**.
+- Max Watchlist items = 12: **PASS**.
+- Monitoring batch concurrency = 3: **PASS**.
+- Auto refresh interval = 5 phút khi Watchlist active: **PASS**.
+- Alert detection: Entry Zone / BUY score / SL / TP targets: **PASS source path**.
+- Notification dedupe local state: **PASS source path**.
+- API routes không được Service Worker cache: **PASS**.
 
-## Performance
+## Deployment checks
 
-- Naive recompute test trước tối ưu với ~900 candles: khoảng 26 giây.
-- Optimized precomputed technical series với ~1.000 candles: khoảng 0,25–0,35 giây Backtest Engine trong synthetic smoke test.
-- Mục tiêu: phù hợp hơn cho server-side request trên Vercel.
+- Package version: `0.6.0`.
+- Service Worker cache: `marketscope-shell-v0.6.0`.
+- Không có `output: "export"`.
+- Không cấu hình Output Directory `out`.
+- `.env.example` không chứa SSI credentials thật.
 
-## Version / deployment checks
+## Sandbox limitation
 
-- Package version `0.5.0`: kiểm tra trước khi đóng ZIP.
-- Service worker cache `v0.5.0`: kiểm tra trước khi đóng ZIP.
-- Không có `output: "export"`: kiểm tra trước khi đóng ZIP.
-- Không cấu hình thư mục `out`: kiểm tra trước khi đóng ZIP.
-- `.env.example` không chứa SSI credentials thật: kiểm tra trước khi đóng ZIP.
+`npm install` bị timeout khi sandbox kết nối npm registry nên không thể chạy full `next build` với dependency thật trong môi trường đóng gói. Source được kiểm tra bằng TypeScript 5.8.3 + offline module stubs, sau đó các stub được xóa trước khi tạo ZIP.
 
-## Giới hạn môi trường kiểm thử
+Trên Vercel hãy để **Output Directory trống**.
 
-`npm install` vẫn timeout khi kết nối npm registry trong sandbox đóng gói, nên không thể chạy full `next build` với dependency thật tại đây. Source đã được kiểm tra bằng TypeScript 5.8.3 và offline stubs cho các module ngoài.
+## Alert limitation
 
-Khi deploy, Vercel sẽ chạy install/build trên hạ tầng Vercel.
-
-**Vercel Output Directory phải để trống.** Project không sử dụng static export / thư mục `out`.
+V0.6.0 có Browser/PWA notification khi monitoring đang chạy. Background cloud push/email 24/7 khi app hoàn toàn đóng chưa được bật mặc định vì cần persistent server storage + scheduler + push/email provider. Không coi browser polling hiện tại là realtime guarantee.

@@ -1,49 +1,34 @@
 # Changelog
 
-## V0.5.0 — Backtest & Win-rate Calibration
+## V0.6.0 — Watchlist & Signal Monitoring
 
-Nâng trực tiếp từ V0.4.0 theo roadmap.
+Nâng trực tiếp từ V0.5.0 theo roadmap.
 
 ### Added
 
-- Backtest Engine không look-ahead.
-- Warm-up 220 candles; history guard tối thiểu 280 candles.
-- Entry fill simulation sau signal; no-fill tracking.
-- Conservative same-candle rule: SL ưu tiên trước TP.
-- Sequential/non-overlapping benchmark trades.
-- TP1-before-SL benchmark: WIN / LOSS / TIMEOUT.
-- Raw Win Rate + Beta(2,2) Calibrated Win Rate.
-- Expectancy R, Profit Factor, Max Drawdown R.
-- Resolution Rate, Average Bars Held, Median Bars to TP1.
-- TP1 / TP2 / TP3 reach statistics.
-- 25% recent validation window.
-- Calibration cohort theo Setup + Regime + Score Band với fallback khi thiếu sample.
-- Calibration quality: INSUFFICIENT / LOW / MEDIUM / HIGH.
-- Time-to-TP1 historical estimate.
-- Backtest UI + recent simulated trades + methodology details.
-- Không gán probability cho WAIT / AVOID.
+- Watchlist localStorage tối đa 12 symbol/timeframe.
+- Add/remove Watchlist từ Analyze hoặc Watchlist module.
+- Compact monitoring endpoint `/api/market/monitor`.
+- BUY / WAIT / AVOID multi-symbol monitoring.
+- Market Regime, Signal Score, calibrated rate, sample, Entry Zone và TP1 trong watch cards.
+- Summary BUY / WAIT / AVOID.
+- Manual refresh + auto refresh 5 phút khi Watchlist active.
+- Batch concurrency 3 để giảm provider/server burst.
+- Alert state cho Entry Zone, BUY score >= 70, SL và TP1–TP3.
+- Browser/PWA notifications opt-in với Service Worker.
+- Notification dedupe per symbol/timeframe.
 
-### Performance
+### UX / Refactor
 
-- Refactor Technical Engine: precompute causal indicator series một lần.
-- Backtest sử dụng `analyzeTechnicalAt()` thay vì recompute toàn bộ indicator ở mỗi candle.
-- Synthetic 1.000-candle backtest smoke test đạt khoảng 0,25–0,35 giây trong sandbox sau tối ưu.
-
-### Data history
-
-- Binance snapshot tăng Kline limit từ 500 lên 1.000.
-- Yahoo Stock daily range tăng lên 3y.
-- Yahoo Stock weekly range tăng lên 10y.
-- SSI requested date window mở rộng cho daily/weekly nhưng dữ liệu thực tế vẫn phụ thuộc giới hạn provider/API.
+- Di chuyển toàn bộ Position / Exit Planner khỏi Analyze sang module Positions.
+- Positions có asset selector, saved positions, P/L/Exit Planner và chart riêng.
+- Analyze chỉ giữ pre-entry analysis.
+- Backtest card chuyển thành compact summary; thống kê sâu nằm trong expandable details.
 
 ### Kept
 
-- Market Data & Mobile Shell.
-- Indicator & Market Regime.
-- Entry / SL / TP Signal Engine.
-- Position / Exit Analysis.
-- PWA / Dark / Light / Auto.
+- V0.1–V0.5 market data, indicators, regime, signal, position engine và backtest calibration.
 
 ### Next
 
-- V0.6.0 — Watchlist / Signal Monitoring theo roadmap hiện tại của UI.
+- V0.7.0 — Futures 1x Analytics theo roadmap gốc.

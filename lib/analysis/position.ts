@@ -237,7 +237,7 @@ export function analyzePositionExit(
     guardrails: [
       'Position Engine phân tích vị thế LONG đã vào; không tự đặt lệnh, không dùng leverage recommendation và không tạo lệnh SHORT.',
       'Ngắn/trung/dài hạn là khung lập kế hoạch theo timeframe, không phải ETA chắc chắn để chạm target.',
-      'Không suy diễn win rate hoặc xác suất thắng từ Signal Score/Position status; V0.5.0 chỉ hiển thị các thống kê này từ Backtest & Calibration riêng.',
+      'Không suy diễn win rate hoặc xác suất thắng từ Signal Score/Position status; Các thống kê này chỉ được hiển thị từ Backtest & Calibration riêng.',
       'MarketScope chưa có portfolio sizing nên không tự đề xuất tỷ trọng % cần bán ở từng mốc.',
     ],
     disclaimer: 'Exit Planner là phân tích rule-based từ giá vốn, OHLCV, ATR, EMA/VWAP, support/resistance và market regime. Các mốc thoát/chốt lời chỉ để tham khảo và phải được đánh giá lại khi dữ liệu thị trường thay đổi.',
