@@ -5,18 +5,28 @@ import {
   CandlestickSeries,
   ColorType,
   HistogramSeries,
+  LineSeries,
   createChart,
   type UTCTimestamp,
 } from 'lightweight-charts';
-import type { Candle } from '@/lib/market/types';
+import type { Candle, TechnicalAnalysis } from '@/lib/market/types';
+
+export type ChartOverlays = {
+  ema20: boolean;
+  ema50: boolean;
+  ema200: boolean;
+  vwap: boolean;
+};
 
 type Props = {
   candles: Candle[];
+  analysis?: TechnicalAnalysis;
+  overlays: ChartOverlays;
   dark: boolean;
   currency: string;
 };
 
-export default function MarketChart({ candles, dark, currency }: Props) {
+export default function MarketChart({ candles, analysis, overlays, dark, currency }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -87,6 +97,23 @@ export default function MarketChart({ candles, dark, currency }: Props) {
       color: c.close >= c.open ? 'rgba(29,185,137,0.34)' : 'rgba(239,91,103,0.34)',
     })));
 
+    const addLine = (enabled: boolean, data: TechnicalAnalysis['series']['ema20'] | undefined, color: string, width = 2) => {
+      if (!enabled || !data?.length) return;
+      const series = chart.addSeries(LineSeries, {
+        color,
+        lineWidth: width as 1 | 2 | 3 | 4,
+        priceLineVisible: false,
+        lastValueVisible: false,
+        crosshairMarkerVisible: false,
+      });
+      series.setData(data.map((point) => ({ time: point.time as UTCTimestamp, value: point.value })));
+    };
+
+    addLine(overlays.ema20, analysis?.series.ema20, '#21a67a', 2);
+    addLine(overlays.ema50, analysis?.series.ema50, '#e1a52b', 2);
+    addLine(overlays.ema200, analysis?.series.ema200, '#8c6de8', 2);
+    addLine(overlays.vwap, analysis?.series.vwap, '#2f8de4', 1);
+
     chart.timeScale().fitContent();
 
     const observer = new ResizeObserver(() => {
@@ -99,9 +126,9 @@ export default function MarketChart({ candles, dark, currency }: Props) {
       observer.disconnect();
       chart.remove();
     };
-  }, [candles, dark, currency]);
+  }, [candles, analysis, overlays, dark, currency]);
 
-  return <div ref={containerRef} className="chart-canvas" aria-label="Biểu đồ nến" />;
+  return <div ref={containerRef} className="chart-canvas" aria-label="Biểu đồ nến với EMA và VWAP" />;
 }
 
 function formatCompactPrice(value: number, currency: string): string {

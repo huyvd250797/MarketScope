@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMarketSnapshot } from '@/lib/market/provider';
 import { normalizeInputSymbol } from '@/lib/market/symbols';
+import { analyzeTechnical } from '@/lib/analysis/technical';
 import type { Interval, MarketType } from '@/lib/market/types';
 
 export const runtime = 'nodejs';
@@ -21,12 +22,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Vui lòng nhập mã tài sản', correlationId }, { status: 400 });
   }
   if (market === 'STOCK' && interval === '4h') {
-    return NextResponse.json({ error: 'Chứng khoán V0.1.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
+    return NextResponse.json({ error: 'Chứng khoán V0.2.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
   }
 
   try {
     const snapshot = await getMarketSnapshot(market, symbol, interval);
-    return NextResponse.json({ ...snapshot, correlationId }, {
+    const analysis = analyzeTechnical(snapshot.candles, market);
+    return NextResponse.json({ ...snapshot, analysis, correlationId }, {
       headers: {
         'Cache-Control': market === 'CRYPTO' ? 's-maxage=10, stale-while-revalidate=20' : 's-maxage=30, stale-while-revalidate=60',
         'X-Correlation-Id': correlationId,
