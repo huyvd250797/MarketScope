@@ -1,33 +1,39 @@
 # Changelog
 
-## V0.2.0 — Indicator & Market Regime Engine
+## V0.3.0 — Entry / SL / TP Signal Engine
 
-Nâng cấp từ V0.1.0 theo đúng roadmap.
+Nâng cấp trực tiếp từ V0.2.0 theo roadmap.
 
 ### Added
 
-- Server-side Technical Analysis Engine.
-- EMA 20 / EMA 50 / EMA 200.
-- RSI 14.
-- MACD 12-26-9.
-- ADX 14, +DI, -DI.
-- ATR 14 và ATR %.
-- Daily-anchored VWAP cho intraday; rolling VWAP 20 cho daily/weekly.
-- Market Structure: HH/HL, LH/LL, Range, Unconfirmed.
-- Market Regime: Strong Uptrend, Uptrend, Range, Downtrend, Strong Downtrend, Volatile.
-- Regime Confidence 25–95 theo mức đồng thuận kỹ thuật; không phải xác suất thắng.
-- Technical Analysis card tối ưu mobile.
-- EMA/VWAP overlay toggle trên candlestick chart.
+- Server-side LONG-only Signal Engine.
+- Decision: `BUY / WAIT / AVOID`.
+- Setup classification: Trend Pullback / Breakout / Range Rebound / No Setup.
+- Signal Score 0–100 với breakdown Trend, Momentum, Structure, Entry Location, Risk Quality.
+- Entry Zone Low / High / Midpoint.
+- Technical Stop Loss + risk %.
+- Invalidation conditions.
+- TP1 / TP2 / TP3 + profit % + R:R.
+- Pivot support/resistance và 20-bar volume ratio context.
+- Positive factors, warnings và guardrails.
+- Signal card tối ưu mobile.
+- Entry/SL/TP price lines và BUY/WAIT/AVOID marker trên Lightweight Charts.
+- Toggle `ENTRY/SL/TP` trên chart.
+
+### Guardrails
+
+- LONG-only, không SHORT.
+- Không leverage recommendation.
+- Không auto trade.
+- Signal Score không phải win rate.
+- Win probability / expectancy / time-to-target để V0.5.0 sau backtest/calibration.
 
 ### Preserved
 
-- Binance public crypto market data.
-- SSI FastConnect / Stock VN fallback architecture.
-- PWA, Dark/Light/Auto, autocomplete, recent symbols.
-- Standard Next.js Vercel deploy; không static export / không `out`.
+- Market Data & Mobile Shell V0.1.0.
+- Indicator & Market Regime Engine V0.2.0.
+- Standard Next.js deploy; không static export / không `out`.
 
-### Not included yet
+### Next
 
-- Entry Zone / Invalidation / Stop Loss / TP1–TP3 / BUY-WAIT-AVOID: V0.3.0.
-- Position Exit Planner: V0.4.0.
-- Backtest / Win Probability / Expectancy / Time-to-target: V0.5.0.
+- V0.4.0 — Position / Exit Analysis: nhập điểm đã mua và phân tích chốt lời/thoát vị thế theo ngắn, trung, dài hạn.

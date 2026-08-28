@@ -48,6 +48,47 @@ export type TechnicalAnalysis = {
   };
 };
 
+
+export type SignalDecision = 'BUY' | 'WAIT' | 'AVOID';
+
+export type SignalSetup = 'TREND_PULLBACK' | 'BREAKOUT' | 'RANGE_REBOUND' | 'NO_SETUP';
+
+export type TradeSignal = {
+  generatedAt: string;
+  side: 'LONG';
+  decision: SignalDecision;
+  decisionLabel: string;
+  setup: SignalSetup;
+  setupLabel: string;
+  score: number;
+  scoreLabel: string;
+  dataSufficient: boolean;
+  entryZone: { low: number; high: number; midpoint: number; note: string } | null;
+  stopLoss: { price: number; riskPercent: number; note: string } | null;
+  invalidation: string[];
+  targets: Array<{
+    key: 'TP1' | 'TP2' | 'TP3';
+    price: number;
+    profitPercent: number;
+    rewardRisk: number;
+    note: string;
+  }>;
+  riskReward: { toTP1: number | null; toTP2: number | null; toTP3: number | null };
+  context: {
+    support: number | null;
+    resistance: number | null;
+    atr: number | null;
+    atrPercent: number | null;
+    volumeRatio: number | null;
+    distanceFromEntryAtr: number | null;
+  };
+  breakdown: { trend: number; momentum: number; structure: number; location: number; risk: number };
+  positiveFactors: string[];
+  warnings: string[];
+  guardrails: string[];
+  disclaimer: string;
+};
+
 export type SymbolItem = {
   symbol: string;
   name: string;
@@ -76,6 +117,7 @@ export type MarketSnapshot = {
   dataAt: string;
   candles: Candle[];
   analysis?: TechnicalAnalysis;
+  signal?: TradeSignal;
   fallbackUsed?: boolean;
   warning?: string;
 };
