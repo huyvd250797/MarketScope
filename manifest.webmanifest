@@ -1,0 +1,20 @@
+{
+  "name": "Mẹ Yêu Bé V15.0.72",
+  "short_name": "Mẹ Yêu Bé",
+  "start_url": "./index.html?v=15.0.72",
+  "display": "standalone",
+  "background_color": "#2b1721",
+  "theme_color": "#f7a9c4",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

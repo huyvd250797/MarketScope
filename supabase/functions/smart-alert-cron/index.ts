@@ -1,0 +1,51 @@
+// MeYeuBe · smart-alert-cron Edge Function
+// Chạy bằng Supabase Scheduled Functions/Cron mỗi 1 phút để gửi Smart Alert dù không thiết bị nào đang mở app.
+import webpush from "npm:web-push@3.6.7";
+
+type DbRow={id:string;data:any;updated_at:string};
+type PushSubRow={id:string;sync_id:string;device_id:string;endpoint:string;p256dh:string;auth:string;enabled:boolean;alert_types:any};
+type Alert={rule_id:string;severity:string;title:string;body:string;event_key:string;url?:string;icon?:string};
+const CORS={"access-control-allow-origin":"*","access-control-allow-headers":"authorization, x-client-info, apikey, content-type","access-control-allow-methods":"POST, OPTIONS"};
+function json(data:any,status=200){return new Response(JSON.stringify(data),{status,headers:{...CORS,"content-type":"application/json; charset=utf-8"}})}
+function env(name:string,fallback=''){return Deno.env.get(name)||fallback}
+function sbUrl(){return env('SUPABASE_URL').replace(/\/+$/,'')}
+function sbHeaders(){const key=env('SUPABASE_SERVICE_ROLE_KEY');return {apikey:key,Authorization:`Bearer ${key}`,'Content-Type':'application/json'}}
+function num(v:any,def=0){const n=Number(String(v??'').replace(',','.'));return Number.isFinite(n)?n:def}
+function S(v:any){return String(v??'')}
+const TZ_OFFSET_MIN=num(env('SMART_ALERT_TZ_OFFSET_MIN','420'),420); // Việt Nam mặc định UTC+7
+function localMs(date:string,time='00:00'){const m=String(date||'').match(/^(\d{4})-(\d{2})-(\d{2})$/);if(!m)return NaN;const tm=String(time||'00:00').match(/^(\d{1,2}):(\d{2})/);const hh=tm?Number(tm[1]):0,mm=tm?Number(tm[2]):0;return Date.UTC(Number(m[1]),Number(m[2])-1,Number(m[3]),hh,mm)-TZ_OFFSET_MIN*60000}
+function localToday(now=Date.now()){const d=new Date(now+TZ_OFFSET_MIN*60000);return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}-${String(d.getUTCDate()).padStart(2,'0')}`}
+function timeText(ms:number){const d=new Date(ms+TZ_OFFSET_MIN*60000);return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`}
+function dayDiff(a:string,b:string){return Math.floor((localMs(b)-localMs(a))/86400000)}
+function smartCfg(data:any){const raw=data?.settings?.dashboardConfig?.smartAlerts||{};const rules=raw.rules||{};return {enabled:raw.enabled!==false,rules:{temperatureHigh:{enabled:true,severity:'critical',threshold:38,...(rules.temperatureHigh||{})},feedOverdue:{enabled:true,severity:'warning',graceMinutes:15,...(rules.feedOverdue||{})},sleepTooLong:{enabled:true,severity:'warning',maxHours:4,...(rules.sleepTooLong||{})},milkExpired:{enabled:true,severity:'critical',...(rules.milkExpired||{})},milkExpiring:{enabled:true,severity:'warning',beforeHours:24,...(rules.milkExpiring||{})},appointmentSoon:{enabled:true,severity:'info',beforeHours:24,...(rules.appointmentSoon||{})}}}}
+function eventTime(e:any){return localMs(e?.startDate||e?.date,e?.timeFrom||'00:00')}
+function latest(data:any,type:string){return (Array.isArray(data?.careEvents)?data.careEvents:[]).filter((x:any)=>x&&x.type===type).sort((a:any,b:any)=>eventTime(b)-eventTime(a))[0]}
+function alertAllowedRule(r:any){return r&&r.enabled!==false&&(r.severity==='critical'||r.severity==='warning')}
+function evalAlerts(data:any,now=Date.now()):Alert[]{
+  const cfg=smartCfg(data); if(!cfg.enabled)return [];
+  const today=localToday(now); const out:Alert[]=[];
+  function add(rule_id:string,severity:string,title:string,body:string,event_key:string,icon='🔔'){out.push({rule_id,severity,title,body,event_key,icon,url:'./index.html?openAlertCenter=1'})}
+  const feedRule=cfg.rules.feedOverdue;
+  if(alertAllowedRule(feedRule)){const f=latest(data,'feed'); const grace=num(feedRule.graceMinutes,15); if(f&&grace>=0){const due=eventTime(f)+Math.round(grace)*60000; if(now>=due){add('feedOverdue',S(feedRule.severity||'warning'),'Đã đến giờ nhắc cữ bú',`Cữ bú gần nhất lúc ${S(f.timeFrom||'--')}, ngưỡng nhắc sau ${grace} phút.`,`feedOverdue:${S(f.id||f.createdAt||((f.startDate||f.date)+'T'+(f.timeFrom||'')))}:${grace}`,'🍼')}}
+  }
+  const sleepRule=cfg.rules.sleepTooLong;
+  if(alertAllowedRule(sleepRule)){const s=latest(data,'sleep'); const maxH=num(sleepRule.maxHours,4); if(s&&!s.timeTo&&maxH>0){const due=eventTime(s)+maxH*3600000; if(now>=due){add('sleepTooLong',S(sleepRule.severity||'warning'),`Bé đã ngủ quá ${maxH} giờ`,`Giấc ngủ bắt đầu lúc ${S(s.timeFrom||'--')}.`,`sleepTooLong:${S(s.id||s.createdAt||((s.startDate||s.date)+'T'+(s.timeFrom||'')))}:${maxH}`,'😴')}}}
+  const expRule=cfg.rules.milkExpired,soonRule=cfg.rules.milkExpiring;
+  const bags=(Array.isArray(data?.milkInventory)?data.milkInventory:[]).filter((b:any)=>b&&S(b.status)==='Đang bảo quản'&&num(b.remaining)>0);
+  const expired=bags.filter((b:any)=>localMs(S(b.expireDateTime||b.expireDate).slice(0,10),S(b.expireDateTime||b.expireDate).slice(11,16))-now<=0);
+  if(alertAllowedRule(expRule)&&expired.length){add('milkExpired',S(expRule.severity||'critical'),`${expired.length} túi sữa đã quá hạn`,'Không nên tiếp tục sử dụng các túi đã quá hạn bảo quản.',`milkExpired:${today}:${expired.length}`,'🧊')}
+  if(alertAllowedRule(soonRule)){const before=num(soonRule.beforeHours,24)*3600000; const soon=bags.filter((b:any)=>{const t=localMs(S(b.expireDateTime||b.expireDate).slice(0,10),S(b.expireDateTime||b.expireDate).slice(11,16)); return t>now&&t-now<=before}); if(soon.length)add('milkExpiring',S(soonRule.severity||'warning'),`${soon.length} túi sữa sắp hết hạn`,`Sẽ hết hạn trong ${num(soonRule.beforeHours,24)} giờ tới.`,`milkExpiring:${today}:${soon.length}:${num(soonRule.beforeHours,24)}`,'🧊')}
+  const apptRule=cfg.rules.appointmentSoon;
+  if(alertAllowedRule(apptRule)){const before=num(apptRule.beforeHours,24)*3600000; const appts=(Array.isArray(data?.appointments)?data.appointments:[]).filter((a:any)=>a&&a.date&&localMs(a.date,(S(a.timeFrom||a.time||'00:00').split(' - ')[0]))>=now).sort((a:any,b:any)=>localMs(a.date,a.timeFrom||a.time||'00:00')-localMs(b.date,b.timeFrom||b.time||'00:00')); const a=appts[0]; if(a){const at=localMs(a.date,a.timeFrom||a.time||'00:00'); if(at-now<=before)add('appointmentSoon',S(apptRule.severity||'warning'),S(a.title||'Có lịch sắp tới'),`${timeText(at)} · ${S(a.date)}`,`appointmentSoon:${S(a.id||a.createdAt||a.date)}`,'🩺')}}
+  const tempRule=cfg.rules.temperatureHigh;
+  if(alertAllowedRule(tempRule)){const t=latest(data,'temperature'); const val=num(t?.amount||t?.temperature||t?.value||t?.extra?.temperature,NaN); const th=num(tempRule.threshold,38); if(t&&Number.isFinite(val)&&val>=th)add('temperatureHigh',S(tempRule.severity||'critical'),`Thân nhiệt ${val}°C`,`Vượt ngưỡng cảnh báo ${th}°C.`,`temperatureHigh:${S(t.id||t.createdAt||((t.startDate||t.date)+'T'+(t.timeFrom||'')))}:${val}`,'🌡️')}
+  return out;
+}
+async function fetchRows(){const res=await fetch(`${sbUrl()}/rest/v1/meyeube_sync?select=id,data,updated_at`,{headers:sbHeaders()});if(!res.ok)throw new Error(`Fetch meyeube_sync ${res.status}: ${await res.text()}`);return await res.json() as DbRow[]}
+async function fetchSubs(syncId:string){const res=await fetch(`${sbUrl()}/rest/v1/push_subscriptions?sync_id=eq.${encodeURIComponent(syncId)}&enabled=eq.true&select=*`,{headers:sbHeaders()});if(!res.ok)throw new Error(`Fetch subscriptions ${res.status}: ${await res.text()}`);return await res.json() as PushSubRow[]}
+function accepted(sub:PushSubRow,ruleId:string){const a=sub.alert_types;if(Array.isArray(a))return a.length===0||a.includes(ruleId);if(a&&typeof a==='object')return a[ruleId]!==false;return true}
+async function reserve(subId:string,key:string){const res=await fetch(`${sbUrl()}/rest/v1/push_delivery_log`,{method:'POST',headers:{...sbHeaders(),Prefer:'return=minimal'},body:JSON.stringify({subscription_id:subId,event_key:key,status:'reserved'})});if(res.status===409)return false;if(!res.ok)throw new Error(`Reserve ${res.status}: ${await res.text()}`);return true}
+async function mark(subId:string,key:string,status:string,error=''){await fetch(`${sbUrl()}/rest/v1/push_delivery_log?subscription_id=eq.${encodeURIComponent(subId)}&event_key=eq.${encodeURIComponent(key)}`,{method:'PATCH',headers:{...sbHeaders(),Prefer:'return=minimal'},body:JSON.stringify({status,error_message:error||null,sent_at:new Date().toISOString()})}).catch(()=>{})}
+async function disable(endpoint:string){await fetch(`${sbUrl()}/rest/v1/push_subscriptions?endpoint=eq.${encodeURIComponent(endpoint)}`,{method:'PATCH',headers:{...sbHeaders(),Prefer:'return=minimal'},body:JSON.stringify({enabled:false,updated_at:new Date().toISOString()})}).catch(()=>{})}
+async function send(sub:PushSubRow,a:Alert){if(!accepted(sub,a.rule_id))return 'filtered'; if(!await reserve(sub.id,a.event_key))return 'duplicate'; try{await webpush.sendNotification({endpoint:sub.endpoint,keys:{p256dh:sub.p256dh,auth:sub.auth}},JSON.stringify({title:a.title||'Mẹ Yêu Bé',body:a.body||'Có cảnh báo mới.',icon:'./icon-192.png',badge:'./icon-192.png',tag:a.event_key,renotify:true,url:a.url||'./index.html?openAlertCenter=1',ruleId:a.rule_id,eventKey:a.event_key})); await mark(sub.id,a.event_key,'sent'); return 'sent'}catch(e:any){const code=Number(e?.statusCode||e?.status||0);await mark(sub.id,a.event_key,'failed',String(e?.body||e?.message||e).slice(0,500)); if(code===404||code===410)await disable(sub.endpoint); return 'failed'}}
+Deno.serve(async(req)=>{if(req.method==='OPTIONS')return new Response('ok',{headers:CORS});try{const pub=env('VAPID_PUBLIC_KEY'),priv=env('VAPID_PRIVATE_KEY');if(!pub||!priv)throw new Error('Missing VAPID keys');webpush.setVapidDetails(env('VAPID_SUBJECT','mailto:admin@example.com'),pub,priv);const rows=await fetchRows();let checked=0,alerts=0,subs=0,sent=0,duplicate=0,filtered=0,failed=0;for(const row of rows){const arr=evalAlerts(row.data||{});checked++; if(!arr.length)continue; alerts+=arr.length; const ss=await fetchSubs(row.id); subs+=ss.length; for(const a of arr){for(const s of ss){const r=await send(s,a); if(r==='sent')sent++; else if(r==='duplicate')duplicate++; else if(r==='filtered')filtered++; else failed++;}}}return json({ok:true,checked_sync_rows:checked,alerts,subscriptions:subs,sent,duplicate,filtered,failed,now:new Date().toISOString()})}catch(e:any){return json({ok:false,error:String(e?.message||e)},500)}});

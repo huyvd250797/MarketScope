@@ -1,0 +1,711 @@
+{
+  "settings": {
+    "lmp": "2025-09-26",
+    "birthDate": "2026-06-25",
+    "babyName": "Bé Bún",
+    "officialName": "Võ Đào Minh Anh",
+    "theme": "dark",
+    "showOfficialName": false,
+    "birthTime": "22:39",
+    "birthHospital": "Bệnh viện Từ Dũ"
+  },
+  "pregnancy": [
+    {
+      "date": "2026-06-21",
+      "week": "38w2d",
+      "weight": "3300 g",
+      "bpd": "91 mm",
+      "hc": "332 mm",
+      "ac": "348 mm",
+      "fl": "70 mm",
+      "afi": "21 cm",
+      "position": "Đầu",
+      "note": "Bờ dưới bánh nhau bám cách lỗ trong CTC> 20 mm, hiện không thấy mạch máu nhau tiền đạo",
+      "updatedAt": "2026-06-24T15:47:17.615Z",
+      "createdAt": "2026-06-24T15:47:17.615Z"
+    },
+    {
+      "date": "2026-06-14",
+      "week": "37w2d",
+      "weight": "2993 g",
+      "bpd": "87 mm",
+      "hc": "327 mm",
+      "ac": "332 mm",
+      "fl": "70 mm",
+      "afi": "18 cm",
+      "position": "Đầu",
+      "note": "",
+      "updatedAt": "2026-06-24T16:17:52.266Z",
+      "createdAt": "2026-06-24T15:39:09.799Z"
+    },
+    {
+      "date": "2026-06-07",
+      "week": "36w2d",
+      "weight": "2647 g",
+      "bpd": "86 mm",
+      "hc": "317 mm",
+      "ac": "310 mm",
+      "fl": "69 mm",
+      "afi": "16 cm",
+      "position": "Đầu",
+      "note": "",
+      "updatedAt": "2026-06-24T15:38:05.628Z",
+      "createdAt": "2026-06-24T15:38:05.628Z"
+    },
+    {
+      "date": "2026-05-24",
+      "week": "34w2d",
+      "weight": "2263 g",
+      "bpd": "85 mm",
+      "hc": "305 mm",
+      "ac": "300 mm",
+      "fl": "63 mm",
+      "afi": "15 cm",
+      "position": "Mông",
+      "note": "",
+      "updatedAt": "2026-06-24T15:35:52.830Z",
+      "createdAt": "2026-06-24T15:35:52.830Z"
+    },
+    {
+      "date": "2026-04-26",
+      "week": "30w2d",
+      "weight": "1617 g",
+      "bpd": "74 mm",
+      "hc": "283 mm",
+      "ac": "266 mm",
+      "fl": "59 mm",
+      "afi": "14 cm",
+      "position": "Đầu",
+      "note": "Vị trí nhau bám: bám mặt sau, nhóm 3, bờ dưới bánh nhau bám sát lỗ trong CTC.",
+      "updatedAt": "2026-06-24T16:17:12.270Z",
+      "createdAt": "2026-06-24T15:33:26.216Z"
+    }
+  ],
+  "baby": [
+    {
+      "date": "2026-06-26",
+      "weight": "3450 g",
+      "length": "50 cm",
+      "head": "32 cm",
+      "feed": "",
+      "sleep": "",
+      "note": "Thông tin sơ sinh của Bé Bún: sinh lúc 22:39 ngày 25/06/2026 tại Bệnh viện Từ Dũ.",
+      "updatedAt": "2026-06-27T01:50:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    }
+  ],
+  "mom": [
+    {
+      "date": "2026-06-25",
+      "weight": "66,5 kg",
+      "bp": "",
+      "note": "Có cơn gò tử cung và ra máu nhiều kèm dịch nhầy",
+      "updatedAt": "2026-06-25T00:32:48.830Z",
+      "createdAt": "2026-06-25T00:32:48.830Z"
+    }
+  ],
+  "diary": [
+    {
+      "date": "2026-06-28",
+      "time": "00:55-01:10",
+      "category": "Chăm sóc",
+      "title": "Bế nôi sau bú",
+      "note": "Bế nôi/vỗ ợ sau bú 15 phút để hỗ trợ xuống sữa và hạn chế trớ sữa.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-28",
+      "time": "00:45-00:55",
+      "category": "Cữ bú",
+      "title": "Cữ bú #1",
+      "note": "Bú bình sữa HiPP 25 mL.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-28",
+      "time": "00:30-00:45",
+      "category": "Cữ bú",
+      "title": "Bú mẹ",
+      "note": "Bú mẹ 15 phút. Chưa thấy sữa về, cho bú để kích thích sữa mẹ.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-28",
+      "time": "00:25",
+      "category": "Tã",
+      "title": "Thay tã #1",
+      "note": "Tã ướt.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "22:21",
+      "category": "Giấc ngủ",
+      "title": "Bé ngủ",
+      "note": "Bé ngủ sau cữ bú tối.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "22:04",
+      "category": "Chăm sóc",
+      "title": "Tư thế sau bú",
+      "note": "Đặt bé nằm hỗ trợ xuống sữa sau bú.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "22:03",
+      "category": "Cữ bú",
+      "title": "Cữ bú #9",
+      "note": "Bú bình sữa HiPP 20 mL.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "20:55",
+      "category": "Tã",
+      "title": "Thay tã #7",
+      "note": "Tã ướt.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "18:00",
+      "category": "Cữ bú",
+      "title": "Cữ bú #8",
+      "note": "Bú bình sữa HiPP 20 mL.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "17:50",
+      "category": "Tã",
+      "title": "Thay tã #6",
+      "note": "Tã ướt.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "16:00",
+      "category": "Cữ bú",
+      "title": "Cữ bú #7",
+      "note": "Bú bình sữa HiPP 20 mL.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "14:10",
+      "category": "Tã",
+      "title": "Thay tã #5",
+      "note": "Thay tã.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "11:50",
+      "category": "Cữ bú",
+      "title": "Cữ bú #6",
+      "note": "Bú bình sữa HiPP 20 mL.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "11:14",
+      "category": "Khám",
+      "title": "Khám chân",
+      "note": "Không phải chân cong. Bác sĩ xác định cơ vùng đùi trên (cơ gấp hông) còn căng nên hai chân co lên tạo góc khoảng 90° giữa đùi và cẳng chân. Hướng dẫn massage, vuốt nhẹ vùng cơ đùi trên hằng ngày để cơ giãn dần; không kéo hay cố duỗi thẳng chân.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "10:40",
+      "category": "Khám",
+      "title": "Khám sơ sinh tổng quát",
+      "note": "Bác sĩ khám tổng quát cho Bé Bún.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "10:33",
+      "category": "Chăm sóc",
+      "title": "Tắm bé",
+      "note": "Tắm cho Bé Bún.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "10:30",
+      "category": "Tã",
+      "title": "Thay tã #4",
+      "note": "Tã ướt.",
+      "createdAt": "2026-06-28T01:30:00.000Z",
+      "updatedAt": "2026-06-28T01:30:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "08:41",
+      "category": "Chăm sóc",
+      "title": "Kết thúc massage",
+      "note": "Kết thúc massage cho Bé Bún. Thời lượng 20 phút.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "08:21",
+      "category": "Chăm sóc",
+      "title": "Bắt đầu massage",
+      "note": "Bắt đầu massage cho Bé Bún.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "08:15",
+      "category": "Cữ bú",
+      "title": "Cữ bú #5",
+      "note": "Bú bình sữa HiPP 20 mL.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "08:00",
+      "category": "Tã",
+      "title": "Thay tã #3",
+      "note": "Tã ướt.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "05:24",
+      "category": "Cữ bú",
+      "title": "Cữ bú #4",
+      "note": "Bú bình sữa HiPP 20 mL.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "Sau bú",
+      "category": "Giấc ngủ",
+      "title": "Bé ngủ lại",
+      "note": "Bé ngủ lại sau cữ bú mẹ.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "04:xx",
+      "category": "Quan sát",
+      "title": "Bé khóc",
+      "note": "Bé khóc, có dấu hiệu đói.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "04:xx",
+      "category": "Cữ bú",
+      "title": "Cữ bú #3",
+      "note": "Bú mẹ trực tiếp. Mẹ chưa cảm nhận sữa về nhiều nhưng bé chịu ngậm và bú.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "04:00",
+      "category": "Tã",
+      "title": "Đi phân #1",
+      "note": "Phân su màu đen, lượng ít.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "03:30",
+      "category": "Giấc ngủ",
+      "title": "Bé ngủ",
+      "note": "Bé ngủ sau cữ bú #2.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "03:20",
+      "category": "Tã",
+      "title": "Thay tã #2",
+      "note": "Tã ướt.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "03:20",
+      "category": "Cữ bú",
+      "title": "Cữ bú #2",
+      "note": "Bú bình sữa HiPP 15 mL.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "03:20-03:30",
+      "category": "Chăm sóc",
+      "title": "Bế nôi sau bú",
+      "note": "Bế nôi sau bú để hạn chế ọc sữa.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "03:00",
+      "category": "Giấc ngủ",
+      "title": "Bé tự thức",
+      "note": "Bé tự thức dậy, có dấu hiệu đói.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "00:15",
+      "category": "Giấc ngủ",
+      "title": "Bé ngủ",
+      "note": "Bé ngủ sau cữ bú #1.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "00:00",
+      "category": "Tã",
+      "title": "Thay tã #1",
+      "note": "Tã ướt.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "00:00",
+      "category": "Cữ bú",
+      "title": "Cữ bú #1",
+      "note": "Bú bình sữa HiPP 15 mL.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-27",
+      "time": "00:00-00:15",
+      "category": "Chăm sóc",
+      "title": "Bế nôi sau bú",
+      "note": "Bế nôi sau bú để hạn chế ọc sữa.",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-27T01:50:00.000Z"
+    },
+    {
+      "date": "2026-06-25",
+      "time": "18:35",
+      "category": "Nhập viện",
+      "title": "Tiêm thuốc",
+      "note": "Tiêm thuốc giảm đau",
+      "updatedAt": "2026-06-25T11:36:28.540Z",
+      "createdAt": "2026-06-25T11:35:46.338Z"
+    },
+    {
+      "date": "2026-06-25",
+      "time": "18:16",
+      "category": "Nhập viện",
+      "title": "Cơn gò",
+      "note": "1 cơn gò mạnh",
+      "updatedAt": "2026-06-25T11:17:14.906Z",
+      "createdAt": "2026-06-25T11:17:14.906Z"
+    },
+    {
+      "date": "2026-06-25",
+      "time": "18:12",
+      "category": "Nhập viện",
+      "title": "Cơn gò",
+      "note": "1 cơn gò mạnh",
+      "updatedAt": "2026-06-25T11:26:21.464Z",
+      "createdAt": "2026-06-25T11:13:37.888Z"
+    },
+    {
+      "date": "2026-06-25",
+      "time": "18:07",
+      "category": "Nhập viện",
+      "title": "Cơn gò tử cung",
+      "note": "1 cơn gò mạnh",
+      "updatedAt": "2026-06-25T11:13:07.685Z",
+      "createdAt": "2026-06-25T11:08:34.971Z"
+    },
+    {
+      "date": "2026-06-25",
+      "time": "16:25",
+      "category": "Nhập viện",
+      "title": "Ăn tối",
+      "note": "Ăn bánh canh trong phòng chờ sinh",
+      "updatedAt": "2026-06-25T10:40:42.347Z",
+      "createdAt": "2026-06-25T10:40:42.347Z"
+    },
+    {
+      "date": "2026-06-25",
+      "time": "14:48",
+      "category": "Nhập viện",
+      "title": "Vào phòng chờ sanh",
+      "note": "Mẹ đã nở 3 phân",
+      "updatedAt": "2026-06-25T08:59:50.557Z",
+      "createdAt": "2026-06-25T07:48:42.940Z"
+    },
+    {
+      "date": "2026-06-25",
+      "time": "12:08",
+      "category": "Nhập viện",
+      "title": "Đo máy",
+      "note": "Đo thai máy, cơn gò tử cung",
+      "updatedAt": "2026-06-25T05:10:54.262Z",
+      "createdAt": "2026-06-25T05:09:22.015Z"
+    },
+    {
+      "date": "2026-06-25",
+      "time": "11:00",
+      "category": "Nhập viện",
+      "title": "Vào phòng chờ sinh",
+      "note": "Tử cung mẹ nở 2 phân",
+      "updatedAt": "2026-06-25T05:04:01.657Z",
+      "createdAt": "2026-06-25T04:07:37.460Z"
+    },
+    {
+      "date": "2026-06-25",
+      "time": "10:00",
+      "category": "Nhập viện",
+      "title": "Nhập viện chờ sinh",
+      "note": "Đăng ký phòng chờ sinh: 1.000.000đ / ngày",
+      "updatedAt": "2026-06-25T03:43:49.437Z",
+      "createdAt": "2026-06-25T03:43:49.437Z"
+    },
+    {
+      "date": "2026-06-25",
+      "time": "08:18",
+      "category": "Nhập viện",
+      "title": "Nhập viện chờ sinh",
+      "note": "Tử cung mẹ nở 1 phân và bung nút nhầy, em bé khoẻ,",
+      "updatedAt": "2026-06-25T05:10:21.475Z",
+      "createdAt": "2026-06-25T01:31:06.881Z"
+    },
+    {
+      "date": "2026-06-25",
+      "time": "07:45",
+      "category": "Nhập viện",
+      "title": "Nhập viện chờ sinh",
+      "note": "Nhập viện vì lý do ra máu âm đạo nhiều kèm dịch nhầy, có cơn gò tử cung",
+      "updatedAt": "2026-06-25T05:10:14.213Z",
+      "createdAt": "2026-06-25T01:15:39.577Z"
+    }
+  ],
+  "healthBook": [
+    {
+      "person": "Con",
+      "fullName": "Võ Đào Minh Anh",
+      "dob": "2026-06-25",
+      "date": "2026-06-25",
+      "blood": "",
+      "height": "50 cm",
+      "weight": "3450 g",
+      "bodyMeasure": "Chu vi đầu 32 cm",
+      "bmi": "",
+      "allergy": "",
+      "history": "",
+      "medicine": "",
+      "vaccine": "",
+      "doctor": "",
+      "insurance": "",
+      "note": "",
+      "updatedAt": "2026-06-28T01:30:00.000Z",
+      "createdAt": "2026-06-25T11:54:11.689Z",
+      "historyLogs": [
+        {
+          "date": "2026-06-25",
+          "fullName": "Võ Đào Minh Anh",
+          "dob": "",
+          "blood": "",
+          "height": "",
+          "weight": "",
+          "bodyMeasure": "",
+          "bmi": "",
+          "allergy": "",
+          "history": "",
+          "medicine": "",
+          "vaccine": "",
+          "doctor": "",
+          "insurance": "",
+          "note": "",
+          "loggedAt": "2026-06-25T11:54:11.689Z"
+        },
+        {
+          "date": "2026-06-25",
+          "fullName": "Võ Đào Minh Anh",
+          "dob": "2026-06-25",
+          "blood": "",
+          "height": "50 cm",
+          "weight": "3450 g",
+          "bodyMeasure": "Chu vi đầu 32 cm",
+          "bmi": "",
+          "allergy": "",
+          "history": "",
+          "medicine": "",
+          "vaccine": "",
+          "doctor": "",
+          "insurance": "",
+          "note": "Thông tin sơ sinh.",
+          "loggedAt": "2026-06-27T01:50:00.000Z"
+        }
+      ]
+    },
+    {
+      "person": "Mẹ",
+      "fullName": "Đào Thị Sao",
+      "dob": "1998-08-16",
+      "date": "2026-06-25",
+      "blood": "B+",
+      "height": "",
+      "weight": "",
+      "bodyMeasure": "",
+      "bmi": "",
+      "allergy": "",
+      "history": "",
+      "medicine": "",
+      "vaccine": "",
+      "doctor": "",
+      "insurance": "DN4790125466213",
+      "note": "",
+      "updatedAt": "2026-06-25T11:12:24.519Z",
+      "createdAt": "2026-06-25T11:12:24.519Z",
+      "historyLogs": [
+        {
+          "date": "2026-06-25",
+          "fullName": "Đào Thị Sao",
+          "dob": "1998-08-16",
+          "blood": "B+",
+          "height": "",
+          "weight": "",
+          "bodyMeasure": "",
+          "bmi": "",
+          "allergy": "",
+          "history": "",
+          "medicine": "",
+          "vaccine": "",
+          "doctor": "",
+          "insurance": "DN4790125466213",
+          "note": "",
+          "loggedAt": "2026-06-25T11:12:24.521Z"
+        }
+      ]
+    },
+    {
+      "person": "Bố",
+      "fullName": "Võ Đức Huy",
+      "dob": "1997-07-25",
+      "date": "2026-06-25",
+      "blood": "",
+      "height": "174 cm",
+      "weight": "72 kg",
+      "bodyMeasure": "",
+      "bmi": "",
+      "allergy": "Thuốc họ sulfamide",
+      "history": "Rối loạn hoảng sợ kịch phát",
+      "medicine": "",
+      "vaccine": "",
+      "doctor": "",
+      "insurance": "",
+      "note": "",
+      "updatedAt": "2026-06-25T11:10:01.093Z",
+      "createdAt": "2026-06-25T11:10:01.093Z",
+      "historyLogs": [
+        {
+          "date": "2026-06-25",
+          "fullName": "Võ Đức Huy",
+          "dob": "1997-07-25",
+          "blood": "",
+          "height": "174 cm",
+          "weight": "72 kg",
+          "bodyMeasure": "",
+          "bmi": "",
+          "allergy": "Thuốc họ sulfamide",
+          "history": "Rối loạn hoảng sợ kịch phát",
+          "medicine": "",
+          "vaccine": "",
+          "doctor": "",
+          "insurance": "",
+          "note": "",
+          "loggedAt": "2026-06-25T11:10:01.093Z"
+        }
+      ]
+    }
+  ],
+  "appointments": [],
+  "appointmentTypes": [
+    {
+      "id": "default_kham_thai",
+      "name": "Khám thai",
+      "icon": "🤰",
+      "desc": "Lịch khám thai định kỳ",
+      "active": true,
+      "createdAt": "2026-06-27T03:22:36.065Z",
+      "updatedAt": "2026-06-27T03:22:36.065Z"
+    },
+    {
+      "id": "default_sieu_am",
+      "name": "Siêu âm",
+      "icon": "🩻",
+      "desc": "Lịch siêu âm, kiểm tra hình thái hoặc tăng trưởng",
+      "active": true,
+      "createdAt": "2026-06-27T03:22:36.065Z",
+      "updatedAt": "2026-06-27T03:22:36.065Z"
+    },
+    {
+      "id": "default_xet_nghiem",
+      "name": "Xét nghiệm",
+      "icon": "🧪",
+      "desc": "Lịch xét nghiệm máu, nước tiểu hoặc các xét nghiệm liên quan",
+      "active": true,
+      "createdAt": "2026-06-27T03:22:36.065Z",
+      "updatedAt": "2026-06-27T03:22:36.065Z"
+    },
+    {
+      "id": "default_tiem_ngua",
+      "name": "Tiêm ngừa",
+      "icon": "💉",
+      "desc": "Lịch tiêm cho mẹ hoặc bé",
+      "active": true,
+      "createdAt": "2026-06-27T03:22:36.065Z",
+      "updatedAt": "2026-06-27T03:22:36.065Z"
+    },
+    {
+      "id": "default_kham_nhi",
+      "name": "Khám nhi",
+      "icon": "👶",
+      "desc": "Lịch khám sau sinh hoặc khám nhi",
+      "active": true,
+      "createdAt": "2026-06-27T03:22:36.065Z",
+      "updatedAt": "2026-06-27T03:22:36.065Z"
+    }
+  ]
+}
