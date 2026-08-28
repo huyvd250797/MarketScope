@@ -1,7 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import MarketChart from './MarketChart';
+import MarketChart, { type ChartOverlays } from './MarketChart';
+import TechnicalAnalysisPanel from './TechnicalAnalysisPanel';
 import type { Interval, MarketSnapshot, MarketType, SymbolItem } from '@/lib/market/types';
 
 type ThemePreference = 'auto' | 'light' | 'dark';
@@ -30,6 +31,7 @@ export default function MarketApp() {
   const [themePref, setThemePref] = useState<ThemePreference>('auto');
   const [dark, setDark] = useState(false);
   const [nav, setNav] = useState<NavKey>('analyze');
+  const [overlays, setOverlays] = useState<ChartOverlays>({ ema20: true, ema50: true, ema200: true, vwap: true });
   const [recent, setRecent] = useState<Record<MarketType, string[]>>({ CRYPTO: [], STOCK: [] });
   const requestRef = useRef(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -170,9 +172,9 @@ export default function MarketApp() {
           <div>
             <div className="brand-row">
               <strong>MarketScope</strong>
-              <span className="version-badge">V0.1.0</span>
+              <span className="version-badge">V0.2.0</span>
             </div>
-            <span className="brand-sub">Market Data • Mobile Shell</span>
+            <span className="brand-sub">Indicators • Market Regime Engine</span>
           </div>
         </div>
         <button className="theme-button" onClick={() => setNav('settings')} aria-label="Cài đặt giao diện">
@@ -273,9 +275,11 @@ export default function MarketApp() {
               ) : null}
             </section>
 
+            {!loading && snapshot?.analysis && <TechnicalAnalysisPanel analysis={snapshot.analysis} snapshot={snapshot} />}
+
             <section className="chart-card">
               <div className="section-title-row">
-                <div><h2>Biểu đồ giá</h2><span>Candlestick + Volume</span></div>
+                <div><h2>Biểu đồ giá</h2><span>Candlestick + Volume + Technical overlays</span></div>
                 <span className="data-count">{snapshot?.candles.length || 0} nến</span>
               </div>
               <div className="timeframe-row">
@@ -283,18 +287,24 @@ export default function MarketApp() {
                   <button key={item} className={interval === item ? 'active' : ''} onClick={() => setInterval(item)}>{formatInterval(item)}</button>
                 ))}
               </div>
-              {loading ? <div className="chart-loading"><div className="pulse" /></div> : snapshot ? <MarketChart candles={snapshot.candles} dark={dark} currency={snapshot.currency} /> : <div className="chart-empty">Không có dữ liệu chart</div>}
+              <div className="overlay-row" aria-label="Chỉ báo trên biểu đồ">
+                <OverlayButton label="EMA20" active={overlays.ema20} onClick={() => setOverlays((prev) => ({ ...prev, ema20: !prev.ema20 }))} tone="ema20" />
+                <OverlayButton label="EMA50" active={overlays.ema50} onClick={() => setOverlays((prev) => ({ ...prev, ema50: !prev.ema50 }))} tone="ema50" />
+                <OverlayButton label="EMA200" active={overlays.ema200} onClick={() => setOverlays((prev) => ({ ...prev, ema200: !prev.ema200 }))} tone="ema200" />
+                <OverlayButton label="VWAP" active={overlays.vwap} onClick={() => setOverlays((prev) => ({ ...prev, vwap: !prev.vwap }))} tone="vwap" />
+              </div>
+              {loading ? <div className="chart-loading"><div className="pulse" /></div> : snapshot ? <MarketChart candles={snapshot.candles} analysis={snapshot.analysis} overlays={overlays} dark={dark} currency={snapshot.currency} /> : <div className="chart-empty">Không có dữ liệu chart</div>}
             </section>
 
             <section className="roadmap-card">
               <div className="roadmap-icon">↗</div>
               <div>
-                <strong>Đúng roadmap V0.1.0</strong>
-                <p>Phiên bản này tập trung dữ liệu thật + chart + mobile shell. EMA/RSI/MACD/Regime sẽ vào V0.2.0; Entry/SL/TP sẽ vào V0.3.0.</p>
+                <strong>Đúng roadmap V0.2.0</strong>
+                <p>Đã có EMA20/50/200, RSI14, MACD, ADX14, ATR14, VWAP, market structure và Market Regime. Entry Zone / Invalidation / SL / TP1-TP3 thuộc V0.3.0.</p>
               </div>
             </section>
 
-            <p className="disclaimer">Dữ liệu dùng cho mục đích phân tích/tham khảo. V0.1.0 chưa đưa ra khuyến nghị mua bán.</p>
+            <p className="disclaimer">Market Regime là phân loại kỹ thuật từ dữ liệu OHLCV, không phải khuyến nghị đầu tư. V0.2.0 chưa phát sinh lệnh mua/bán.</p>
           </>
         )}
       </section>
@@ -318,11 +328,15 @@ function NavButton({ active, icon, label, onClick }: { active: boolean; icon: st
   return <button className={active ? 'active' : ''} onClick={onClick}><span>{icon}</span><small>{label}</small></button>;
 }
 
+function OverlayButton({ label, active, onClick, tone }: { label: string; active: boolean; onClick: () => void; tone: 'ema20' | 'ema50' | 'ema200' | 'vwap' }) {
+  return <button className={`overlay-chip ${tone} ${active ? 'active' : ''}`} onClick={onClick}><i />{label}</button>;
+}
+
 function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePreference; onTheme: (t: ThemePreference) => void; onBack: () => void }) {
   return (
     <section className="panel-page">
       <button className="back-button" onClick={onBack}>← Quay lại</button>
-      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình thuộc phạm vi V0.1.0.</p></div>
+      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.2.0.</p></div>
       <div className="settings-card">
         <strong>Giao diện</strong>
         <p>Dark / Light / Auto được lưu trên thiết bị.</p>
@@ -341,7 +355,7 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
       </div>
       <div className="settings-card muted-card">
         <strong>Phiên bản</strong>
-        <p>MarketScope V0.1.0 — Market Data & Mobile Shell.</p>
+        <p>MarketScope V0.2.0 — Indicator & Market Regime Engine.</p>
       </div>
     </section>
   );
