@@ -85,7 +85,7 @@ export default function TechnicalAnalysisPanel({ analysis, snapshot }: Props) {
 
       <div className="analysis-note">
         <span>i</span>
-        <p>V0.2.0 chỉ phân loại xu hướng, động lượng và biến động. <b>Chưa tạo Entry / SL / TP hay xác suất thắng</b>; các phần đó thuộc các phiên bản tiếp theo theo roadmap.</p>
+        <p>Market Regime và indicator là lớp dữ liệu đầu vào cho Signal Engine V0.3.0. <b>Signal Score không phải xác suất thắng.</b> Win rate/expectancy chỉ xuất hiện sau backtest và calibration ở V0.5.0.</p>
       </div>
     </section>
   );

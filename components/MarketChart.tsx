@@ -7,26 +7,29 @@ import {
   HistogramSeries,
   LineSeries,
   createChart,
+  createSeriesMarkers,
   type UTCTimestamp,
 } from 'lightweight-charts';
-import type { Candle, TechnicalAnalysis } from '@/lib/market/types';
+import type { Candle, TechnicalAnalysis, TradeSignal } from '@/lib/market/types';
 
 export type ChartOverlays = {
   ema20: boolean;
   ema50: boolean;
   ema200: boolean;
   vwap: boolean;
+  signals: boolean;
 };
 
 type Props = {
   candles: Candle[];
   analysis?: TechnicalAnalysis;
+  signal?: TradeSignal;
   overlays: ChartOverlays;
   dark: boolean;
   currency: string;
 };
 
-export default function MarketChart({ candles, analysis, overlays, dark, currency }: Props) {
+export default function MarketChart({ candles, analysis, signal, overlays, dark, currency }: Props) {
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -114,6 +117,38 @@ export default function MarketChart({ candles, analysis, overlays, dark, currenc
     addLine(overlays.ema200, analysis?.series.ema200, '#8c6de8', 2);
     addLine(overlays.vwap, analysis?.series.vwap, '#2f8de4', 1);
 
+    if (overlays.signals && signal) {
+      const line = (price: number | null | undefined, title: string, color: string, width: 1 | 2 = 1) => {
+        if (price == null || !Number.isFinite(price)) return;
+        candleSeries.createPriceLine({
+          price,
+          color,
+          lineWidth: width,
+          axisLabelVisible: true,
+          title,
+        });
+      };
+
+      if (signal.entryZone) {
+        line(signal.entryZone.low, 'ENTRY L', '#2f8de4');
+        line(signal.entryZone.high, 'ENTRY H', '#2f8de4');
+      }
+      line(signal.stopLoss?.price, 'SL', '#ef5b67', 2);
+      signal.targets.forEach((target, index) => {
+        line(target.price, target.key, index === 0 ? '#21a67a' : index === 1 ? '#13a06f' : '#0b845d');
+      });
+
+      const last = candles[candles.length - 1];
+      if (last) {
+        const marker = signal.decision === 'BUY'
+          ? { time: last.time as UTCTimestamp, position: 'belowBar' as const, color: '#21a67a', shape: 'arrowUp' as const, text: 'BUY' }
+          : signal.decision === 'AVOID'
+            ? { time: last.time as UTCTimestamp, position: 'aboveBar' as const, color: '#ef5b67', shape: 'circle' as const, text: 'AVOID' }
+            : { time: last.time as UTCTimestamp, position: 'aboveBar' as const, color: '#e1a52b', shape: 'circle' as const, text: 'WAIT' };
+        createSeriesMarkers(candleSeries, [marker]);
+      }
+    }
+
     chart.timeScale().fitContent();
 
     const observer = new ResizeObserver(() => {
@@ -126,9 +161,9 @@ export default function MarketChart({ candles, analysis, overlays, dark, currenc
       observer.disconnect();
       chart.remove();
     };
-  }, [candles, analysis, overlays, dark, currency]);
+  }, [candles, analysis, signal, overlays, dark, currency]);
 
-  return <div ref={containerRef} className="chart-canvas" aria-label="Biểu đồ nến với EMA và VWAP" />;
+  return <div ref={containerRef} className="chart-canvas" aria-label="Biểu đồ nến với EMA, VWAP và mức Entry SL TP" />;
 }
 
 function formatCompactPrice(value: number, currency: string): string {

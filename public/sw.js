@@ -1,4 +1,4 @@
-const CACHE = 'marketscope-shell-v0.2.0';
+const CACHE = 'marketscope-shell-v0.3.0';
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {

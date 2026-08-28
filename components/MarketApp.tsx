@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import MarketChart, { type ChartOverlays } from './MarketChart';
 import TechnicalAnalysisPanel from './TechnicalAnalysisPanel';
+import SignalPanel from './SignalPanel';
 import type { Interval, MarketSnapshot, MarketType, SymbolItem } from '@/lib/market/types';
 
 type ThemePreference = 'auto' | 'light' | 'dark';
@@ -31,7 +32,7 @@ export default function MarketApp() {
   const [themePref, setThemePref] = useState<ThemePreference>('auto');
   const [dark, setDark] = useState(false);
   const [nav, setNav] = useState<NavKey>('analyze');
-  const [overlays, setOverlays] = useState<ChartOverlays>({ ema20: true, ema50: true, ema200: true, vwap: true });
+  const [overlays, setOverlays] = useState<ChartOverlays>({ ema20: true, ema50: true, ema200: true, vwap: true, signals: true });
   const [recent, setRecent] = useState<Record<MarketType, string[]>>({ CRYPTO: [], STOCK: [] });
   const requestRef = useRef(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -172,9 +173,9 @@ export default function MarketApp() {
           <div>
             <div className="brand-row">
               <strong>MarketScope</strong>
-              <span className="version-badge">V0.2.0</span>
+              <span className="version-badge">V0.3.0</span>
             </div>
-            <span className="brand-sub">Indicators • Market Regime Engine</span>
+            <span className="brand-sub">Entry • SL • TP Signal Engine</span>
           </div>
         </div>
         <button className="theme-button" onClick={() => setNav('settings')} aria-label="Cài đặt giao diện">
@@ -275,11 +276,12 @@ export default function MarketApp() {
               ) : null}
             </section>
 
+            {!loading && snapshot?.signal && <SignalPanel signal={snapshot.signal} snapshot={snapshot} />}
             {!loading && snapshot?.analysis && <TechnicalAnalysisPanel analysis={snapshot.analysis} snapshot={snapshot} />}
 
             <section className="chart-card">
               <div className="section-title-row">
-                <div><h2>Biểu đồ giá</h2><span>Candlestick + Volume + Technical overlays</span></div>
+                <div><h2>Biểu đồ giá</h2><span>Candlestick + Volume + Indicator & Signal levels</span></div>
                 <span className="data-count">{snapshot?.candles.length || 0} nến</span>
               </div>
               <div className="timeframe-row">
@@ -292,19 +294,20 @@ export default function MarketApp() {
                 <OverlayButton label="EMA50" active={overlays.ema50} onClick={() => setOverlays((prev) => ({ ...prev, ema50: !prev.ema50 }))} tone="ema50" />
                 <OverlayButton label="EMA200" active={overlays.ema200} onClick={() => setOverlays((prev) => ({ ...prev, ema200: !prev.ema200 }))} tone="ema200" />
                 <OverlayButton label="VWAP" active={overlays.vwap} onClick={() => setOverlays((prev) => ({ ...prev, vwap: !prev.vwap }))} tone="vwap" />
+                <OverlayButton label="ENTRY/SL/TP" active={overlays.signals} onClick={() => setOverlays((prev) => ({ ...prev, signals: !prev.signals }))} tone="signal" />
               </div>
-              {loading ? <div className="chart-loading"><div className="pulse" /></div> : snapshot ? <MarketChart candles={snapshot.candles} analysis={snapshot.analysis} overlays={overlays} dark={dark} currency={snapshot.currency} /> : <div className="chart-empty">Không có dữ liệu chart</div>}
+              {loading ? <div className="chart-loading"><div className="pulse" /></div> : snapshot ? <MarketChart candles={snapshot.candles} analysis={snapshot.analysis} signal={snapshot.signal} overlays={overlays} dark={dark} currency={snapshot.currency} /> : <div className="chart-empty">Không có dữ liệu chart</div>}
             </section>
 
             <section className="roadmap-card">
               <div className="roadmap-icon">↗</div>
               <div>
-                <strong>Đúng roadmap V0.2.0</strong>
-                <p>Đã có EMA20/50/200, RSI14, MACD, ADX14, ATR14, VWAP, market structure và Market Regime. Entry Zone / Invalidation / SL / TP1-TP3 thuộc V0.3.0.</p>
+                <strong>Đúng roadmap V0.3.0</strong>
+                <p>Đã có Signal Score, BUY / WAIT / AVOID, Entry Zone, Invalidation, SL, TP1–TP3, R:R và đánh dấu trực tiếp trên chart. Position/Exit Planner thuộc V0.4.0; backtest/win rate thuộc V0.5.0.</p>
               </div>
             </section>
 
-            <p className="disclaimer">Market Regime là phân loại kỹ thuật từ dữ liệu OHLCV, không phải khuyến nghị đầu tư. V0.2.0 chưa phát sinh lệnh mua/bán.</p>
+            <p className="disclaimer">MarketScope V0.3.0 tạo setup LONG rule-based để tham khảo, không tự đặt lệnh và không đảm bảo lợi nhuận. Signal Score không phải xác suất thắng; win rate chỉ được phép hiển thị sau backtest ở V0.5.0.</p>
           </>
         )}
       </section>
@@ -328,7 +331,7 @@ function NavButton({ active, icon, label, onClick }: { active: boolean; icon: st
   return <button className={active ? 'active' : ''} onClick={onClick}><span>{icon}</span><small>{label}</small></button>;
 }
 
-function OverlayButton({ label, active, onClick, tone }: { label: string; active: boolean; onClick: () => void; tone: 'ema20' | 'ema50' | 'ema200' | 'vwap' }) {
+function OverlayButton({ label, active, onClick, tone }: { label: string; active: boolean; onClick: () => void; tone: 'ema20' | 'ema50' | 'ema200' | 'vwap' | 'signal' }) {
   return <button className={`overlay-chip ${tone} ${active ? 'active' : ''}`} onClick={onClick}><i />{label}</button>;
 }
 
@@ -336,7 +339,7 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
   return (
     <section className="panel-page">
       <button className="back-button" onClick={onBack}>← Quay lại</button>
-      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.2.0.</p></div>
+      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.3.0.</p></div>
       <div className="settings-card">
         <strong>Giao diện</strong>
         <p>Dark / Light / Auto được lưu trên thiết bị.</p>
@@ -355,7 +358,7 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
       </div>
       <div className="settings-card muted-card">
         <strong>Phiên bản</strong>
-        <p>MarketScope V0.2.0 — Indicator & Market Regime Engine.</p>
+        <p>MarketScope V0.3.0 — Entry / SL / TP Signal Engine.</p>
       </div>
     </section>
   );

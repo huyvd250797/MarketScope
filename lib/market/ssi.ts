@@ -66,7 +66,7 @@ export class SsiFastConnectProvider implements MarketProvider {
   }
 
   async getSnapshot(symbol: string, interval: Interval): Promise<MarketSnapshot> {
-    if (interval === '4h') throw new Error('SSI FastConnect không có nến 4h trực tiếp trong V0.2.0');
+    if (interval === '4h') throw new Error('SSI FastConnect không có nến 4h trực tiếp trong V0.3.0');
 
     const { Auth, Data } = await import('@ssi.developer/ssi-sdk');
     const credentials = this.credentials();
@@ -82,7 +82,7 @@ export class SsiFastConnectProvider implements MarketProvider {
     await auth.authenticate();
     const data = new Data(auth);
     const now = new Date();
-    const daysBack = interval === '15m' ? 30 : interval === '1h' ? 90 : interval === '1d' ? 400 : 1500;
+    const daysBack = interval === '15m' ? 30 : interval === '1h' ? 90 : interval === '1d' ? 400 : 2200;
     const from = new Date(now.getTime() - daysBack * 86_400_000);
     const fromDate = formatSsiDate(from, interval === '15m' || interval === '1h');
     const toDate = formatSsiDate(now, interval === '15m' || interval === '1h');
