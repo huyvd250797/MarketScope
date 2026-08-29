@@ -46,6 +46,7 @@ export default function MarketApp() {
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>('unsupported');
   const [entryDraft, setEntryDraft] = useState('');
+  const [quantityDraft, setQuantityDraft] = useState('1');
   const [activeEntryPrice, setActiveEntryPrice] = useState<number | null>(null);
   const [positionInputError, setPositionInputError] = useState<string | null>(null);
   const requestRef = useRef(0);
@@ -75,7 +76,7 @@ export default function MarketApp() {
 
     try {
       const stored = JSON.parse(localStorage.getItem('marketscope-positions') || '[]') as SavedPosition[];
-      setSavedPositions(Array.isArray(stored) ? stored.filter((item) => item && item.entryPrice > 0) : []);
+      setSavedPositions(Array.isArray(stored) ? stored.filter((item) => item && item.entryPrice > 0).map((item) => ({ ...item, quantity: item.quantity && item.quantity > 0 ? item.quantity : 1 })) : []);
     } catch {
       setSavedPositions([]);
     }
@@ -164,9 +165,11 @@ export default function MarketApp() {
     const saved = savedPositions.find((item) => item.market === market && item.symbol === symbol);
     if (saved) {
       setEntryDraft(String(saved.entryPrice));
+      setQuantityDraft(String(saved.quantity || 1));
       setActiveEntryPrice(saved.entryPrice);
     } else {
       setEntryDraft('');
+      setQuantityDraft('1');
       setActiveEntryPrice(null);
     }
     setPositionInputError(null);
@@ -223,12 +226,17 @@ export default function MarketApp() {
 
   const analyzePosition = () => {
     const parsed = parseEntryPrice(entryDraft, snapshot?.currentPrice || 0);
+    const quantity = parseQuantity(quantityDraft);
     if (!Number.isFinite(parsed) || parsed <= 0) {
       setPositionInputError('Vui lòng nhập giá vào lệnh hợp lệ lớn hơn 0.');
       return;
     }
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      setPositionInputError('Vui lòng nhập số lượng nắm giữ hợp lệ lớn hơn 0.');
+      return;
+    }
     const normalizedSymbol = snapshot?.symbol || symbol;
-    const saved: SavedPosition = { market, symbol: normalizedSymbol, entryPrice: parsed, interval, savedAt: new Date().toISOString() };
+    const saved: SavedPosition = { market, symbol: normalizedSymbol, entryPrice: parsed, quantity, interval, savedAt: new Date().toISOString() };
     setActiveEntryPrice(parsed);
     setPositionInputError(null);
     setSavedPositions((prev) => {
@@ -242,6 +250,7 @@ export default function MarketApp() {
     const normalizedSymbol = snapshot?.symbol || symbol;
     setActiveEntryPrice(null);
     setEntryDraft('');
+    setQuantityDraft('1');
     setPositionInputError(null);
     setSavedPositions((prev) => {
       const next = prev.filter((item) => !(item.market === market && item.symbol === normalizedSymbol));
@@ -256,6 +265,7 @@ export default function MarketApp() {
     setQuery(item.symbol);
     setInterval(item.interval);
     setEntryDraft(String(item.entryPrice));
+    setQuantityDraft(String(item.quantity || 1));
     setActiveEntryPrice(item.entryPrice);
     setNav('positions');
   };
@@ -269,6 +279,7 @@ export default function MarketApp() {
     if (item.market === market && item.symbol === symbol) {
       setActiveEntryPrice(null);
       setEntryDraft('');
+      setQuantityDraft('1');
     }
   };
 
@@ -392,9 +403,9 @@ export default function MarketApp() {
           <div>
             <div className="brand-row">
               <strong>MarketScope</strong>
-              <span className="version-badge">V0.6.0</span>
+              <span className="version-badge">V0.7.0</span>
             </div>
-            <span className="brand-sub">Watchlist • Signal Monitoring</span>
+            <span className="brand-sub">Portfolio • Spot Risk Management</span>
           </div>
         </div>
         <button className="theme-button" onClick={() => setNav('settings')} aria-label="Cài đặt giao diện">
@@ -431,6 +442,7 @@ export default function MarketApp() {
             error={error}
             correlationId={correlationId}
             entryDraft={entryDraft}
+            quantityDraft={quantityDraft}
             analysis={positionAnalysis}
             inputError={positionInputError}
             positions={savedPositions}
@@ -443,6 +455,7 @@ export default function MarketApp() {
             onSubmit={submitSymbol}
             onInterval={setInterval}
             onEntryDraft={(value) => { setEntryDraft(value); setPositionInputError(null); }}
+            onQuantityDraft={(value) => { setQuantityDraft(value); setPositionInputError(null); }}
             onAnalyze={analyzePosition}
             onClear={clearCurrentPosition}
             onOpen={openSavedPosition}
@@ -571,12 +584,12 @@ export default function MarketApp() {
             <section className="roadmap-card">
               <div className="roadmap-icon">↗</div>
               <div>
-                <strong>Đúng roadmap V0.6.0</strong>
-                <p>Đã có Watchlist & Signal Monitoring nhiều mã/timeframe. Position / Exit Planner đã được chuyển hẳn sang module Positions để Analyze tập trung vào quyết định vào lệnh.</p>
+                <strong>V0.7.0 • Spot-only Portfolio</strong>
+                <p>Futures đã được loại khỏi roadmap. Portfolio & Risk Management nằm trong Positions; Analyze tiếp tục chỉ tập trung vào quyết định vào lệnh.</p>
               </div>
             </section>
 
-            <p className="disclaimer">MarketScope V0.6.0 theo dõi tín hiệu LONG theo watchlist khi app đang mở. Calibrated rate là thống kê lịch sử, không phải xác suất chắc chắn và không đảm bảo lợi nhuận tương lai.</p>
+            <p className="disclaimer">MarketScope V0.7.0 chỉ phân tích Spot/position LONG không leverage; Portfolio Risk được tách theo từng đồng tiền. Calibrated rate là thống kê lịch sử, không phải xác suất chắc chắn và không đảm bảo lợi nhuận tương lai.</p>
           </>
         )}
       </section>
@@ -608,7 +621,7 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
   return (
     <section className="panel-page">
       <button className="back-button" onClick={onBack}>← Quay lại</button>
-      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.6.0.</p></div>
+      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.7.0 • Spot-only.</p></div>
       <div className="settings-card">
         <strong>Giao diện</strong>
         <p>Dark / Light / Auto được lưu trên thiết bị.</p>
@@ -627,11 +640,11 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
       </div>
       <div className="settings-card">
         <strong>Watchlist notifications</strong>
-        <p>Bật/tắt quyền thông báo tại module Watchlist. V0.6.0 chỉ kiểm tra khi Watchlist đang mở; push nền/cloud scheduler chưa bật mặc định.</p>
+        <p>Bật/tắt quyền thông báo tại module Watchlist. V0.7.0 chỉ kiểm tra khi Watchlist đang mở; push nền/cloud scheduler chưa bật mặc định.</p>
       </div>
       <div className="settings-card muted-card">
         <strong>Phiên bản</strong>
-        <p>MarketScope V0.6.0 — Watchlist & Signal Monitoring.</p>
+        <p>MarketScope V0.7.0 — Watchlist & Signal Monitoring.</p>
       </div>
     </section>
   );
@@ -749,4 +762,10 @@ function formatDataTime(iso: string) {
 
 function formatInterval(value: Interval) {
   return value === '1d' ? '1D' : value === '1w' ? '1W' : value;
+}
+
+function parseQuantity(value: string) {
+  const normalized = value.trim().replace(/\s/g, '').replace(',', '.');
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : Number.NaN;
 }

@@ -304,6 +304,56 @@ export type SavedPosition = {
   market: MarketType;
   symbol: string;
   entryPrice: number;
+  quantity?: number;
   interval: Interval;
   savedAt: string;
+};
+
+export type PortfolioPositionSnapshot = {
+  market: MarketType;
+  symbol: string;
+  interval: Interval;
+  currency: string;
+  quantity: number;
+  entryPrice: number;
+  currentPrice: number;
+  costBasis: number;
+  currentValue: number;
+  pnlValue: number;
+  pnlPercent: number;
+  defensiveStop: number;
+  riskFromEntryValue: number;
+  downsideToStopValue: number;
+  action: PositionAction;
+  actionLabel: string;
+  status: PositionStatus;
+  statusLabel: string;
+  regime: TechnicalAnalysis['regime']['key'];
+  warning?: string;
+};
+
+export type PortfolioCurrencyBucket = {
+  currency: string;
+  positionCount: number;
+  invested: number;
+  currentValue: number;
+  pnlValue: number;
+  pnlPercent: number;
+  riskFromEntryValue: number;
+  downsideToStopValue: number;
+  largestPositionWeight: number;
+  largestPositionSymbol: string | null;
+};
+
+export type PortfolioRiskSnapshot = {
+  generatedAt: string;
+  status: 'HEALTHY' | 'WATCH' | 'HIGH_RISK';
+  statusLabel: string;
+  positions: PortfolioPositionSnapshot[];
+  buckets: PortfolioCurrencyBucket[];
+  profitablePositions: number;
+  losingPositions: number;
+  riskPositions: number;
+  warnings: string[];
+  notes: string[];
 };

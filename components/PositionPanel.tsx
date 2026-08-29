@@ -5,13 +5,15 @@ import type { PositionExitAnalysis, MarketSnapshot } from '@/lib/market/types';
 type Props = {
   snapshot: MarketSnapshot;
   entryDraft: string;
+  quantityDraft: string;
   analysis: PositionExitAnalysis | null;
   onEntryDraft: (value: string) => void;
+  onQuantityDraft: (value: string) => void;
   onAnalyze: () => void;
   onClear: () => void;
 };
 
-export default function PositionPanel({ snapshot, entryDraft, analysis, onEntryDraft, onAnalyze, onClear }: Props) {
+export default function PositionPanel({ snapshot, entryDraft, quantityDraft, analysis, onEntryDraft, onQuantityDraft, onAnalyze, onClear }: Props) {
   const digits = snapshot.currency === 'VND' ? 0 : snapshot.currentPrice >= 1000 ? 2 : 6;
   const pnlTone = !analysis ? '' : analysis.pnlPercent > 0 ? 'profit' : analysis.pnlPercent < 0 ? 'loss' : 'flat';
   const actionTone = !analysis ? '' : analysis.action === 'EXIT_RISK' || analysis.action === 'REDUCE_RISK'
@@ -31,8 +33,8 @@ export default function PositionPanel({ snapshot, entryDraft, analysis, onEntryD
       </div>
 
       <div className="position-input-box">
-        <label htmlFor="entry-price">Giá đã vào lệnh</label>
-        <div className="position-input-row">
+        <div className="position-input-labels"><label htmlFor="entry-price">Giá đã vào lệnh</label><label htmlFor="position-quantity">Số lượng đang nắm</label></div>
+        <div className="position-input-row portfolio-input-row">
           <input
             id="entry-price"
             inputMode="decimal"
@@ -41,10 +43,18 @@ export default function PositionPanel({ snapshot, entryDraft, analysis, onEntryD
             onKeyDown={(event) => { if (event.key === 'Enter') onAnalyze(); }}
             placeholder={snapshot.currency === 'VND' ? 'Ví dụ: 120000' : 'Ví dụ: 62000'}
           />
-          <button className="primary-button" onClick={onAnalyze}>Phân tích vị thế</button>
+          <input
+            id="position-quantity"
+            inputMode="decimal"
+            value={quantityDraft}
+            onChange={(event) => onQuantityDraft(event.target.value)}
+            onKeyDown={(event) => { if (event.key === 'Enter') onAnalyze(); }}
+            placeholder="Ví dụ: 100 hoặc 0.25"
+          />
+          <button className="primary-button" onClick={onAnalyze}>Lưu & phân tích</button>
           {analysis && <button className="position-clear" onClick={onClear}>Xóa</button>}
         </div>
-        <p>Giá vốn được lưu cục bộ trên thiết bị theo từng mã; MarketScope không gửi lịch sử vị thế sang dịch vụ bên thứ ba.</p>
+        <p>Giá vốn + số lượng được lưu cục bộ. Số lượng dùng để tính giá trị, P/L và tỷ trọng Portfolio.</p>
       </div>
 
       {!analysis ? (
