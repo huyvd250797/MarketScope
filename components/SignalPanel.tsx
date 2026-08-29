@@ -100,7 +100,7 @@ export default function SignalPanel({ signal, snapshot }: Props) {
         <div className="details-body">
           <strong>Setup mất hiệu lực khi</strong>
           {signal.invalidation.map((item) => <p key={item}>• {item}</p>)}
-          <strong>Nguyên tắc V0.3.0</strong>
+          <strong>Guardrails hiện hành</strong>
           {signal.guardrails.map((item) => <p key={item}>• {item}</p>)}
         </div>
       </details>
@@ -111,6 +111,8 @@ export default function SignalPanel({ signal, snapshot }: Props) {
 }
 
 function decisionDescription(signal: TradeSignal) {
+  if (signal.decisionLabel === 'DATA STALE') return 'Dữ liệu thị trường đã vượt ngưỡng freshness. V0.8.0 khóa Entry/SL/TP cho tới khi provider trả dữ liệu mới.';
+  if (signal.decisionLabel === 'DATA CHECK') return 'Data Quality Guard phát hiện dữ liệu chưa đạt điều kiện an toàn. Tín hiệu mở vị thế mới đang bị khóa.';
   if (signal.decision === 'BUY') return 'Các rule kỹ thuật đang đồng thuận và giá còn nằm trong/đủ gần vùng Entry. Đây là setup tham khảo, không phải cam kết lợi nhuận.';
   if (signal.decision === 'AVOID') return 'Một hoặc nhiều guardrail rủi ro đang bị vi phạm. Engine LONG-only ưu tiên không mở vị thế mới.';
   return signal.entryZone

@@ -248,6 +248,8 @@ export type MarketSnapshot = {
   analysis?: TechnicalAnalysis;
   signal?: TradeSignal;
   backtest?: BacktestResult;
+  quality?: DataQualityReport;
+  providerDiagnostics?: ProviderDiagnostics;
   fallbackUsed?: boolean;
   warning?: string;
 };
@@ -256,6 +258,73 @@ export interface MarketProvider {
   readonly name: string;
   getSnapshot(symbol: string, interval: Interval): Promise<MarketSnapshot>;
 }
+
+
+export type DataHealthStatus = 'HEALTHY' | 'DEGRADED' | 'STALE_DATA' | 'INVALID_DATA' | 'PROVIDER_ERROR';
+
+export type DataQualityReport = {
+  checkedAt: string;
+  status: DataHealthStatus;
+  statusLabel: string;
+  score: number;
+  signalAllowed: boolean;
+  analysisAllowed: boolean;
+  backtestAllowed: boolean;
+  freshness: {
+    ageSeconds: number;
+    maxAgeSeconds: number;
+    status: 'FRESH' | 'AGING' | 'STALE' | 'FUTURE_TIMESTAMP';
+    label: string;
+  };
+  candles: {
+    count: number;
+    minimumForSignal: number;
+    duplicateTimestamps: number;
+    nonMonotonicTimestamps: number;
+    invalidOhlc: number;
+    largeGaps: number;
+    zeroVolumeRatio: number;
+  };
+  priceConsistency: {
+    lastCandleClose: number | null;
+    differencePercent: number | null;
+  };
+  warnings: string[];
+  blockers: string[];
+};
+
+export type ProviderDiagnostics = {
+  requestedMode: string;
+  selectedProvider: string;
+  route: 'PRIMARY' | 'FALLBACK' | 'DIRECT';
+  configured: boolean;
+  fallbackUsed: boolean;
+  fallbackReason: string | null;
+  latencyMs: number;
+};
+
+export type HealthCheckItem = {
+  key: string;
+  label: string;
+  status: 'HEALTHY' | 'DEGRADED' | 'PROVIDER_ERROR';
+  latencyMs: number | null;
+  message: string;
+  selected?: boolean;
+  configured?: boolean;
+};
+
+export type SystemHealthSnapshot = {
+  generatedAt: string;
+  version: string;
+  overall: 'HEALTHY' | 'DEGRADED' | 'PROVIDER_ERROR';
+  overallLabel: string;
+  stockProviderMode: string;
+  stockFallbackEnabled: boolean;
+  providers: HealthCheckItem[];
+  engines: HealthCheckItem[];
+  cachePolicies: Array<{ endpoint: string; policy: string; note: string }>;
+  notes: string[];
+};
 
 export type WatchlistMonitorSnapshot = {
   market: MarketType;
@@ -297,6 +366,8 @@ export type WatchlistMonitorSnapshot = {
     estimatedTimeToTp1: string | null;
     matchedBy: string;
   };
+  quality: DataQualityReport;
+  providerDiagnostics?: ProviderDiagnostics;
   warning?: string;
 };
 
@@ -329,6 +400,8 @@ export type PortfolioPositionSnapshot = {
   status: PositionStatus;
   statusLabel: string;
   regime: TechnicalAnalysis['regime']['key'];
+  dataQualityStatus?: DataHealthStatus;
+  dataQualityScore?: number;
   warning?: string;
 };
 

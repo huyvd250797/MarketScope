@@ -1,15 +1,17 @@
 # Changelog
 
-## V0.7.0 — Portfolio & Risk Management (Spot-only)
+## V0.8.0 — Quality & Observability
 
-- Loại Futures khỏi roadmap/scope sản phẩm.
-- Thêm quantity cho SavedPosition, tương thích dữ liệu V0.6.0 cũ.
-- Thêm Portfolio dashboard ngay trong module Positions.
-- Tổng hợp cost basis, current value, P/L theo từng currency bucket.
-- Thêm allocation và concentration risk.
-- Thêm downside-to-defensive-stop theo Position Engine.
-- Thêm portfolio status HEALTHY / WATCH / HIGH_RISK.
-- Cảnh báo nhiều vị thế bearish, concentration cao và risk actions.
-- Thêm POST `/api/market/portfolio`, batch concurrency 3, no-store.
-- Analyze tiếp tục không chứa Position/Portfolio để tránh quá tải dashboard.
-- Bump package, PWA cache và metadata lên 0.7.0.
+- Thêm Data Quality Guard cho market snapshot.
+- Kiểm tra freshness, minimum candles, OHLC integrity, duplicate/non-monotonic timestamp, large gaps, zero-volume ratio và current-price consistency.
+- Khóa Entry/SL/TP khi dữ liệu stale/invalid/không đủ mẫu.
+- Watchlist không phát BUY/Entry notification khi Data Quality Guard đang khóa signal.
+- Thêm Data Quality compact panel trong Analyze và Positions.
+- Thêm Provider Diagnostics: primary/fallback/direct, reason, configured state, latency.
+- Thêm `GET /api/system/health`.
+- Thêm System Health & Diagnostics trong Settings.
+- Thêm self-test cho Technical / Signal / Backtest Engine.
+- Yahoo fallback thử query1/query2 để tăng khả năng phục hồi.
+- Portfolio đánh dấu Data Quality theo từng vị thế và thêm warning ở cấp danh mục.
+- Bump package, metadata và PWA cache lên 0.8.0.
+- Giữ nguyên Spot-only; không Futures/SHORT/leverage/auto trade.

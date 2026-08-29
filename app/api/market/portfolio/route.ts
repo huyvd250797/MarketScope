@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getMarketSnapshot } from '@/lib/market/provider';
 import { normalizeInputSymbol } from '@/lib/market/symbols';
 import { analyzeTechnical } from '@/lib/analysis/technical';
+import { assessMarketSnapshot, applyDataQualityGuard } from '@/lib/market/quality';
 import { analyzeTradeSignal } from '@/lib/analysis/signal';
 import { analyzePositionExit } from '@/lib/analysis/position';
 import type { Interval, MarketType, PortfolioCurrencyBucket, PortfolioPositionSnapshot, PortfolioRiskSnapshot } from '@/lib/market/types';
@@ -59,8 +60,11 @@ export async function POST(request: NextRequest) {
 
     const positions = await mapLimit(valid, 3, async (item): Promise<PortfolioPositionSnapshot> => {
       const snapshot = await getMarketSnapshot(item.market, item.symbol, item.interval);
+      const quality = assessMarketSnapshot(snapshot);
+      snapshot.quality = quality;
+      if (!quality.analysisAllowed) throw new Error(`${snapshot.symbol}: ${quality.blockers[0] || 'Data Quality không đủ để phân tích vị thế'}`);
       const analysis = analyzeTechnical(snapshot.candles, item.market);
-      const signal = analyzeTradeSignal(snapshot.candles, item.market, analysis);
+      const signal = applyDataQualityGuard(analyzeTradeSignal(snapshot.candles, item.market, analysis), quality);
       const position = analyzePositionExit(snapshot.candles, item.market, item.interval, analysis, signal, item.entryPrice);
       const costBasis = item.entryPrice * item.quantity;
       const currentValue = snapshot.currentPrice * item.quantity;
@@ -87,7 +91,9 @@ export async function POST(request: NextRequest) {
         status: position.status,
         statusLabel: position.statusLabel,
         regime: position.context.regime,
-        warning: snapshot.warning,
+        dataQualityStatus: quality.status,
+        dataQualityScore: quality.score,
+        warning: [snapshot.warning, quality.status !== 'HEALTHY' ? `Data Quality: ${quality.statusLabel} (${quality.score}/100)` : null].filter(Boolean).join(' • ') || undefined,
       };
     });
 
@@ -121,6 +127,8 @@ export async function POST(request: NextRequest) {
       if (bucket.largestPositionWeight >= 50) warnings.push(`${bucket.largestPositionSymbol} chiếm ${bucket.largestPositionWeight.toFixed(1)}% nhóm ${bucket.currency}: mức tập trung rất cao.`);
       else if (bucket.largestPositionWeight >= 35) warnings.push(`${bucket.largestPositionSymbol} chiếm ${bucket.largestPositionWeight.toFixed(1)}% nhóm ${bucket.currency}: nên theo dõi concentration risk.`);
     }
+    const degradedData = positions.filter((item) => item.dataQualityStatus && item.dataQualityStatus !== 'HEALTHY');
+    if (degradedData.length) warnings.push(`${degradedData.length} vị thế có dữ liệu cần kiểm tra: ${degradedData.map((item) => item.symbol).join(', ')}.`);
     const risky = positions.filter((item) => item.action === 'EXIT_RISK' || item.action === 'REDUCE_RISK');
     if (risky.length) warnings.push(`${risky.length} vị thế đang ở trạng thái giảm rủi ro / phá mốc bảo vệ: ${risky.map((item) => item.symbol).join(', ')}.`);
     const bearish = positions.filter((item) => item.regime === 'DOWNTREND' || item.regime === 'STRONG_DOWNTREND');
@@ -142,6 +150,7 @@ export async function POST(request: NextRequest) {
         'Không cộng trực tiếp VND với USD/USDT; MarketScope tách danh mục theo từng đồng tiền để tránh tổng vốn sai.',
         'Risk to Stop là ước lượng theo mốc bảo vệ kỹ thuật của từng Position Engine, không phải mức lỗ tối đa được đảm bảo.',
         'Dữ liệu giá vốn/số lượng chỉ được dùng trong request tính danh mục và không được lưu bởi API MarketScope.',
+        'V0.8.0 đánh dấu Data Quality theo từng vị thế; dữ liệu stale/degraded phải được kiểm tra trước khi ra quyết định.',
       ],
     };
     return NextResponse.json({ ...result, correlationId }, { headers: { 'Cache-Control': 'no-store', 'X-Correlation-Id': correlationId } });

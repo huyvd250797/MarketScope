@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMarketSnapshot } from '@/lib/market/provider';
 import { normalizeInputSymbol } from '@/lib/market/symbols';
+import { assessMarketSnapshot, applyDataQualityGuard } from '@/lib/market/quality';
 import { analyzeTechnical } from '@/lib/analysis/technical';
 import { analyzeTradeSignal } from '@/lib/analysis/signal';
 import { backtestSignalEngine } from '@/lib/analysis/backtest';
@@ -24,15 +25,33 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Vui lòng nhập mã tài sản', correlationId }, { status: 400 });
   }
   if (market === 'STOCK' && interval === '4h') {
-    return NextResponse.json({ error: 'Chứng khoán V0.7.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
+    return NextResponse.json({ error: 'Chứng khoán V0.8.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
   }
 
   try {
     const snapshot = await getMarketSnapshot(market, symbol, interval);
+    const quality = assessMarketSnapshot(snapshot);
+    snapshot.quality = quality;
+    if (!quality.analysisAllowed) {
+      return NextResponse.json({ error: quality.blockers[0] || 'Data Quality không đủ để phân tích', quality, correlationId }, { status: 422, headers: { 'Cache-Control': 'no-store', 'X-Correlation-Id': correlationId } });
+    }
+
     const analysis = analyzeTechnical(snapshot.candles, market);
-    const signal = analyzeTradeSignal(snapshot.candles, market, analysis);
-    const backtest = backtestSignalEngine(snapshot.candles, market, interval, signal, analysis.regime.key);
-    const calibration = backtest.calibration;
+    const signal = applyDataQualityGuard(analyzeTradeSignal(snapshot.candles, market, analysis), quality);
+    const backtest = quality.backtestAllowed
+      ? backtestSignalEngine(snapshot.candles, market, interval, signal, analysis.regime.key)
+      : null;
+    const calibration = backtest?.calibration ?? {
+      applicable: false,
+      quality: 'INSUFFICIENT' as const,
+      qualityLabel: 'Chưa đủ mẫu',
+      calibratedWinRate: null,
+      resolvedTrades: 0,
+      expectancyR: null,
+      profitFactor: null,
+      estimatedTimeToTp1: null,
+      matchedBy: 'Data Quality Guard',
+    };
 
     const compact: WatchlistMonitorSnapshot = {
       market,
@@ -74,6 +93,8 @@ export async function GET(request: NextRequest) {
         estimatedTimeToTp1: calibration.estimatedTimeToTp1,
         matchedBy: calibration.matchedBy,
       },
+      quality,
+      providerDiagnostics: snapshot.providerDiagnostics,
       warning: snapshot.warning,
     };
 
@@ -81,11 +102,12 @@ export async function GET(request: NextRequest) {
       headers: {
         'Cache-Control': market === 'CRYPTO' ? 's-maxage=15, stale-while-revalidate=30' : 's-maxage=45, stale-while-revalidate=90',
         'X-Correlation-Id': correlationId,
+        'X-Data-Quality': quality.status,
       },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Không thể lấy dữ liệu theo dõi';
     console.error('[market/monitor]', { correlationId, market, symbol, interval, message });
-    return NextResponse.json({ error: message, correlationId }, { status: 502, headers: { 'X-Correlation-Id': correlationId } });
+    return NextResponse.json({ error: message, correlationId }, { status: 502, headers: { 'Cache-Control': 'no-store', 'X-Correlation-Id': correlationId } });
   }
 }
