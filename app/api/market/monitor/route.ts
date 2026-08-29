@@ -5,6 +5,7 @@ import { assessMarketSnapshot, applyDataQualityGuard } from '@/lib/market/qualit
 import { analyzeTechnical } from '@/lib/analysis/technical';
 import { analyzeTradeSignal } from '@/lib/analysis/signal';
 import { backtestSignalEngine } from '@/lib/analysis/backtest';
+import { normalizeStrategyProfile, resolveStrategyProfile } from '@/lib/analysis/strategy';
 import type { Interval, MarketType, WatchlistMonitorSnapshot } from '@/lib/market/types';
 
 export const runtime = 'nodejs';
@@ -19,13 +20,14 @@ export async function GET(request: NextRequest) {
   const symbol = normalizeInputSymbol(market, rawSymbol);
   const requestedInterval = request.nextUrl.searchParams.get('interval') as Interval | null;
   const interval: Interval = requestedInterval && intervals.has(requestedInterval) ? requestedInterval : market === 'STOCK' ? '1d' : '1h';
+  const requestedProfile = normalizeStrategyProfile(request.nextUrl.searchParams.get('profile'));
   const correlationId = crypto.randomUUID();
 
   if (!symbol) {
     return NextResponse.json({ error: 'Vui lòng nhập mã tài sản', correlationId }, { status: 400 });
   }
   if (market === 'STOCK' && interval === '4h') {
-    return NextResponse.json({ error: 'Chứng khoán V0.8.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
+    return NextResponse.json({ error: 'Chứng khoán V0.9.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
   }
 
   try {
@@ -37,9 +39,10 @@ export async function GET(request: NextRequest) {
     }
 
     const analysis = analyzeTechnical(snapshot.candles, market);
-    const signal = applyDataQualityGuard(analyzeTradeSignal(snapshot.candles, market, analysis), quality);
+    const strategy = resolveStrategyProfile(requestedProfile, market, interval, analysis);
+    const signal = applyDataQualityGuard(analyzeTradeSignal(snapshot.candles, market, analysis, strategy.effective), quality);
     const backtest = quality.backtestAllowed
-      ? backtestSignalEngine(snapshot.candles, market, interval, signal, analysis.regime.key)
+      ? backtestSignalEngine(snapshot.candles, market, interval, signal, analysis.regime.key, strategy.effective)
       : null;
     const calibration = backtest?.calibration ?? {
       applicable: false,
@@ -65,6 +68,7 @@ export async function GET(request: NextRequest) {
       changePercent: snapshot.changePercent,
       marketState: snapshot.marketState,
       dataAt: snapshot.dataAt,
+      strategy,
       regime: {
         key: analysis.regime.key,
         label: analysis.regime.label,

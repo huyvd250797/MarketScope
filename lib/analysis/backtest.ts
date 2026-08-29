@@ -6,6 +6,7 @@ import type {
   BacktestResult,
   BacktestTrade,
   Candle,
+  EffectiveStrategyProfile,
   Interval,
   MarketType,
   TechnicalAnalysis,
@@ -23,6 +24,23 @@ const intervalConfig: Record<Interval, { entryWaitBars: number; maxHoldBars: num
   '1d': { entryWaitBars: 4, maxHoldBars: 25 },
   '1w': { entryWaitBars: 3, maxHoldBars: 16 },
 };
+
+
+const profileHoldMultiplier: Record<EffectiveStrategyProfile, number> = {
+  SHORT_TERM: 0.65,
+  SWING: 1,
+  MEDIUM_TERM: 1.65,
+  LONG_TERM: 2.5,
+};
+
+function backtestConfig(interval: Interval, profile: EffectiveStrategyProfile) {
+  const base = intervalConfig[interval];
+  const multiplier = profileHoldMultiplier[profile];
+  return {
+    entryWaitBars: Math.max(2, Math.round(base.entryWaitBars * (profile === 'LONG_TERM' ? 1.25 : profile === 'MEDIUM_TERM' ? 1.1 : profile === 'SHORT_TERM' ? 0.8 : 1))),
+    maxHoldBars: Math.max(8, Math.round(base.maxHoldBars * multiplier)),
+  };
+}
 
 const round = (value: number | null, digits = 2): number | null => {
   if (value == null || !Number.isFinite(value)) return null;
@@ -47,7 +65,7 @@ function scoreBand(score: number) {
   return '<60';
 }
 
-function simulateTrade(candles: Candle[], signalIndex: number, signal: TradeSignal, regime: TechnicalAnalysis['regime']['key'], interval: Interval): BacktestTrade | null {
+function simulateTrade(candles: Candle[], signalIndex: number, signal: TradeSignal, regime: TechnicalAnalysis['regime']['key'], interval: Interval, profile: EffectiveStrategyProfile): BacktestTrade | null {
   const entry = signal.entryZone;
   const stop = signal.stopLoss;
   const tp1 = signal.targets.find((target) => target.key === 'TP1');
@@ -55,7 +73,7 @@ function simulateTrade(candles: Candle[], signalIndex: number, signal: TradeSign
   const tp3 = signal.targets.find((target) => target.key === 'TP3');
   if (!entry || !stop || !tp1 || !tp2 || !tp3) return null;
 
-  const cfg = intervalConfig[interval];
+  const cfg = backtestConfig(interval, profile);
   const firstFutureIndex = signalIndex + 1;
   const lastEntryIndex = Math.min(candles.length - 1, signalIndex + cfg.entryWaitBars);
   if (firstFutureIndex > lastEntryIndex) return null;
@@ -286,10 +304,11 @@ export function backtestSignalEngine(
   interval: Interval,
   currentSignal: TradeSignal,
   currentRegime: TechnicalAnalysis['regime']['key'],
+  profile: EffectiveStrategyProfile = 'SWING',
 ): BacktestResult {
   // Exclude the latest live candle from historical testing. It may still be forming.
   const history = candles.length > WARMUP_CANDLES + 1 ? candles.slice(0, -1) : candles;
-  const config = intervalConfig[interval];
+  const config = backtestConfig(interval, profile);
   const trades: BacktestTrade[] = [];
   let evaluatedSignals = 0;
   let buySignals = 0;
@@ -302,7 +321,7 @@ export function backtestSignalEngine(
     while (index < history.length - 2) {
       const prefix = history.slice(0, index + 1);
       const analysis = analyzeTechnicalAt(prepared, index, false);
-      const signal = analyzeTradeSignal(prefix, market, analysis);
+      const signal = analyzeTradeSignal(prefix, market, analysis, profile);
       evaluatedSignals += 1;
 
       if (signal.decision !== 'BUY' || !signal.entryZone || !signal.stopLoss) {
@@ -311,7 +330,7 @@ export function backtestSignalEngine(
       }
 
       buySignals += 1;
-      const trade = simulateTrade(history, index, signal, analysis.regime.key, interval);
+      const trade = simulateTrade(history, index, signal, analysis.regime.key, interval, profile);
       if (!trade) {
         noFillSignals += 1;
         noFillSignalTimes.push(history[index].time);
@@ -334,6 +353,7 @@ export function backtestSignalEngine(
 
   return {
     generatedAt: new Date().toISOString(),
+    strategyProfile: profile,
     status: history.length < MIN_HISTORY_CANDLES ? 'INSUFFICIENT_HISTORY' : trades.length < 4 ? 'LIMITED' : 'READY',
     sampleCandles: history.length,
     warmupCandles: WARMUP_CANDLES,
@@ -348,6 +368,7 @@ export function backtestSignalEngine(
     calibration,
     recentTrades: trades.slice(-MAX_RECENT_TRADES).reverse(),
     methodology: [
+      `Backtest cố định profile ${profile}; không trộn rule/holding horizon giữa các profile.`,
       'Không look-ahead: mỗi tín hiệu chỉ dùng nến đã đóng tới đúng thời điểm tín hiệu.',
       `Warm-up ${WARMUP_CANDLES} nến để EMA200 và indicator ổn định trước khi đánh giá BUY.`,
       `Entry chỉ được ghi nhận khi vùng Entry thực sự được chạm trong tối đa ${config.entryWaitBars} nến tiếp theo.`,

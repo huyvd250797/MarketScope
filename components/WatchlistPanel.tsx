@@ -1,12 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import type { Interval, MarketType, WatchlistMonitorSnapshot } from '@/lib/market/types';
+import { effectiveProfileLabel } from './StrategyProfileSelector';
+import type { Interval, MarketType, StrategyProfileKey, WatchlistMonitorSnapshot } from '@/lib/market/types';
 
 export type WatchlistItem = {
   market: MarketType;
   symbol: string;
   interval: Interval;
+  profile: StrategyProfileKey;
   addedAt: string;
 };
 
@@ -23,7 +25,7 @@ type Props = {
   refreshing: boolean;
   lastRefresh: string | null;
   onRefresh: () => void;
-  onAdd: (market: MarketType, symbol: string, interval: Interval) => void;
+  onAdd: (market: MarketType, symbol: string, interval: Interval, profile: StrategyProfileKey) => void;
   onOpen: (item: WatchlistItem) => void;
   onRemove: (item: WatchlistItem) => void;
   notificationEnabled: boolean;
@@ -35,14 +37,15 @@ type Props = {
 const cryptoIntervals: Interval[] = ['15m', '1h', '4h', '1d', '1w'];
 const stockIntervals: Interval[] = ['15m', '1h', '1d', '1w'];
 
-export function watchlistKey(item: Pick<WatchlistItem, 'market' | 'symbol' | 'interval'>) {
-  return `${item.market}:${item.symbol.toUpperCase()}:${item.interval}`;
+export function watchlistKey(item: Pick<WatchlistItem, 'market' | 'symbol' | 'interval'> & { profile?: StrategyProfileKey }) {
+  return `${item.market}:${item.symbol.toUpperCase()}:${item.interval}:${item.profile || 'SWING'}`;
 }
 
 export default function WatchlistPanel({ items, states, refreshing, lastRefresh, onRefresh, onAdd, onOpen, onRemove, notificationEnabled, notificationPermission, onToggleNotifications, onBack }: Props) {
   const [draftMarket, setDraftMarket] = useState<MarketType>('CRYPTO');
   const [draftSymbol, setDraftSymbol] = useState('');
   const [draftInterval, setDraftInterval] = useState<Interval>('1h');
+  const [draftProfile, setDraftProfile] = useState<StrategyProfileKey>('AUTO');
   const intervals = draftMarket === 'CRYPTO' ? cryptoIntervals : stockIntervals;
 
   const readyData = useMemo(() => items.map((item) => states[watchlistKey(item)]?.data).filter(Boolean) as WatchlistMonitorSnapshot[], [items, states]);
@@ -53,7 +56,7 @@ export default function WatchlistPanel({ items, states, refreshing, lastRefresh,
   const submit = () => {
     const symbol = draftSymbol.trim().toUpperCase();
     if (!symbol) return;
-    onAdd(draftMarket, symbol, draftInterval);
+    onAdd(draftMarket, symbol, draftInterval, draftProfile);
     setDraftSymbol('');
   };
 
@@ -93,6 +96,13 @@ export default function WatchlistPanel({ items, states, refreshing, lastRefresh,
           <select value={draftInterval} onChange={(event) => setDraftInterval(event.target.value as Interval)}>
             {intervals.map((item) => <option value={item} key={item}>{formatInterval(item)}</option>)}
           </select>
+          <select value={draftProfile} onChange={(event) => setDraftProfile(event.target.value as StrategyProfileKey)} aria-label="Strategy profile">
+            <option value="AUTO">AUTO</option>
+            <option value="SHORT_TERM">Ngắn hạn</option>
+            <option value="SWING">Swing</option>
+            <option value="MEDIUM_TERM">Trung hạn</option>
+            <option value="LONG_TERM">Dài hạn</option>
+          </select>
           <button className="primary-button" onClick={submit}>+ Thêm</button>
         </div>
         <p>Tối đa 12 mã/timeframe để giới hạn tải dữ liệu và backtest trên Vercel.</p>
@@ -115,7 +125,7 @@ export default function WatchlistPanel({ items, states, refreshing, lastRefresh,
 
       <div className="watch-note">
         <span>i</span>
-        <p>V0.8.0 là monitoring khi app đang mở, chưa phải push notification nền. Calibrated rate chỉ hiện khi backtest đủ điều kiện và không phải cam kết xác suất thắng tương lai.</p>
+        <p>V0.9.0 lưu Strategy Profile theo từng mã/timeframe. AUTO có thể đổi effective profile khi regime/volatility thay đổi; calibrated rate luôn backtest theo effective profile hiện tại. Monitoring khi app đang mở, chưa phải push notification nền. Calibrated rate chỉ hiện khi backtest đủ điều kiện và không phải cam kết xác suất thắng tương lai.</p>
       </div>
     </section>
   );
@@ -127,7 +137,7 @@ function WatchCard({ item, state, onOpen, onRemove }: { item: WatchlistItem; sta
     return (
       <article className="watch-card pending">
         <button className="watch-card-main" onClick={onOpen}>
-          <div className="watch-card-title"><span>{item.market === 'CRYPTO' ? 'CRYPTO' : 'STOCK VN'}</span><strong>{item.symbol}</strong><em>{formatInterval(item.interval)}</em></div>
+          <div className="watch-card-title"><span>{item.market === 'CRYPTO' ? 'CRYPTO' : 'STOCK VN'}</span><strong>{item.symbol}</strong><em>{formatInterval(item.interval)} • {item.profile === 'AUTO' ? 'AUTO' : effectiveProfileLabel(item.profile)}</em></div>
           <p>{state.status === 'error' ? state.error || 'Không tải được dữ liệu' : state.status === 'loading' ? 'Đang phân tích tín hiệu…' : 'Chờ cập nhật dữ liệu'}</p>
         </button>
         <button className="watch-remove" onClick={onRemove} aria-label={`Xóa ${item.symbol}`}>×</button>
@@ -145,7 +155,7 @@ function WatchCard({ item, state, onOpen, onRemove }: { item: WatchlistItem; sta
     <article className={`watch-card ${decision}`}>
       <button className="watch-card-main" onClick={onOpen}>
         <div className="watch-card-top">
-          <div className="watch-card-title"><span>{data.market === 'CRYPTO' ? 'CRYPTO' : 'STOCK VN'}</span><strong>{data.symbol}</strong><em>{formatInterval(data.interval)}</em></div>
+          <div className="watch-card-title"><span>{data.market === 'CRYPTO' ? 'CRYPTO' : 'STOCK VN'}</span><strong>{data.symbol}</strong><em>{formatInterval(data.interval)} • {data.strategy.autoApplied ? `AUTO→${data.strategy.effectiveLabel}` : data.strategy.effectiveLabel}</em></div>
           <div className={`watch-decision ${decision}`}><b>{data.signal.decision}</b><small>{priority}</small></div>
         </div>
         <div className="watch-price-row">

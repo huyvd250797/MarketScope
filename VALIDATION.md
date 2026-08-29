@@ -1,24 +1,26 @@
-# Validation — MarketScope V0.8.0
+# Validation — MarketScope V0.9.0
 
-## Đã kiểm tra trong môi trường đóng gói
+## Đã kiểm tra offline
 
-- Package version `0.8.0`.
-- Service Worker cache `marketscope-shell-v0.8.0`.
-- Core API/engine strict TypeScript check: PASS bằng TypeScript 5.8.3 + declaration stubs cho dependency không có trong sandbox.
-- Full source TS/TSX semantic check: PASS với `noImplicitAny=false` chỉ để bù contextual DOM typing từ React stubs; các lỗi implicit-event của stub không phản ánh source khi `@types/react` thật được cài.
-- Data Quality smoke test:
-  - 300 nến mới → `HEALTHY`, signal allowed.
-  - 300 nến nhưng data quá cũ → `STALE_DATA`, signal blocked.
-  - 100 nến → `DEGRADED`, Entry/SL/TP blocked vì thiếu 220 nến.
-- Không có `output: "export"`.
-- Vercel Output Directory phải để trống.
-- Service Worker không cache `/api/*`.
-- Portfolio API vẫn giới hạn 30 vị thế, batch concurrency 3, `no-store`.
-- VND và USD/USDT vẫn tách bucket.
-- Futures/SHORT/leverage không có trong V0.8.0.
-- Health response không chứa SSI API key/secret.
-- ZIP phải qua `unzip -t` trước khi phát hành.
+- Package version `0.9.0`.
+- Service Worker cache `marketscope-shell-v0.9.0`.
+- Core analysis strict TypeScript: PASS.
+- Full TS/TSX semantic check bằng dependency stubs: PASS.
+- Strategy wiring smoke test: PASS cho AUTO / SHORT_TERM / SWING / MEDIUM_TERM / LONG_TERM.
+- `signal.strategy.profile === effective profile`: PASS.
+- `backtest.strategyProfile === effective profile`: PASS.
+- `position.strategy.profile === effective profile`: PASS.
+- TP1 < TP2 < TP3 invariant khi có target: PASS.
+- Data Quality Guard được giữ nguyên trước Signal/Backtest.
+- Watchlist profile migration: legacy → SWING.
+- Position profile migration: legacy → SWING.
+- No Futures/SHORT/leverage/auto trade.
+- Không `output: "export"`.
+- Không yêu cầu thư mục `out`.
+- Secret scan trước đóng gói.
 
-## Giới hạn môi trường đóng gói
+## Full dependency build
 
-`npm install` đã được thử nhưng timeout trong sandbox, vì vậy chưa thể chạy `next build` với dependency thật tại đây. Sau khi push lên GitHub/Vercel cần để Vercel chạy install/build bình thường và kiểm tra **Settings → System Health & Diagnostics** sau deploy.
+Đã thử `npm install --ignore-scripts --no-audit --no-fund` trong sandbox, nhưng npm registry timeout trước khi dependency được tải; không tạo `node_modules` hoặc `package-lock.json` dở dang. Vì vậy không thể chạy `next build` với dependency thật trong môi trường đóng gói này.
+
+Khi deploy Vercel, để **Output Directory trống** và xem build log thực tế của Vercel.

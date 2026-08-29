@@ -1,124 +1,94 @@
-# MarketScope V0.8.0 — Quality & Observability (Spot-only)
+# MarketScope V0.9.0 — Strategy Profiles & Smart Analysis
 
-V0.8.0 nâng trực tiếp từ V0.7.0 và giữ nguyên định hướng **Spot-only**. Mục tiêu của phiên bản này là hardening trước production: kiểm soát độ mới/chất lượng dữ liệu, theo dõi provider, thêm diagnostics và ngăn Signal Engine phát Entry/SL/TP khi input data không đủ an toàn.
+MarketScope là web app mobile-first phân tích **Crypto Spot** và **chứng khoán Việt Nam**, không Futures, không SHORT, không leverage và không tự đặt lệnh.
 
-## Version history
+V0.9.0 nâng trực tiếp từ V0.8.0 và giữ toàn bộ Market Data, Technical Analysis, Entry/SL/TP, Position/Exit, Backtest Calibration, Watchlist, Portfolio Risk và Data Quality Guard. Điểm mới là toàn bộ hệ thống hiểu cùng một **Strategy Profile** để tránh dùng một cách phân tích cho mọi thời gian nắm giữ.
 
-- V0.1.0 — Market Data & Mobile Shell ✅
-- V0.2.0 — Indicator & Market Regime ✅
-- V0.3.0 — Entry / SL / TP Signal Engine ✅
-- V0.4.0 — Position / Exit Analysis ✅
-- V0.5.0 — Backtest & Win-rate Calibration ✅
-- V0.6.0 — Watchlist & Signal Monitoring ✅
-- V0.7.0 — Portfolio & Risk Management (Spot-only) ✅
-- **V0.8.0 — Quality & Observability ✅**
+## Strategy Profiles
 
-## Điểm mới V0.8.0
+- **AUTO** — Smart Analysis đề xuất profile hiệu lực từ timeframe, Market Regime, ADX, ATR và RSI.
+- **Ngắn hạn** — vài giờ đến khoảng 3 ngày; ưu tiên momentum/vị trí vào, Entry và SL sát hơn.
+- **Swing** — khoảng 3 ngày đến 4 tuần; cân bằng trend, momentum, structure và R:R.
+- **Trung hạn** — khoảng 3 tuần đến 3 tháng; ưu tiên trend/structure, vùng Entry và SL rộng hơn.
+- **Dài hạn** — từ khoảng 3 tháng; ưu tiên EMA200/xu hướng lớn và giảm trọng số nhiễu ngắn hạn.
 
-### 1. Data Quality Guard
-Mỗi snapshot được kiểm tra trước khi Signal Engine được phép phát lệnh:
+Strategy Profile điều khiển cùng lúc:
 
-- freshness của `dataAt` theo market/timeframe;
-- số lượng nến tối thiểu;
-- duplicate timestamp;
-- timestamp không tăng dần;
-- OHLC bất hợp lệ;
-- khoảng trống dữ liệu lớn;
-- tỷ lệ volume = 0;
-- chênh lệch bất thường giữa current price và close nến cuối.
+- trọng số Signal Score và ngưỡng BUY;
+- độ rộng Entry Zone;
+- ATR multiplier của Stop Loss;
+- TP1 / TP2 / TP3 theo R;
+- giới hạn mua đuổi;
+- Position protection / trailing / Exit S-M-L;
+- holding guide;
+- Backtest và calibration cohort.
 
-Trạng thái:
+## Smart Analysis / AUTO
 
-- `HEALTHY`
-- `DEGRADED`
-- `STALE_DATA`
-- `INVALID_DATA`
+AUTO không phải AI dự đoán giá. Đây là rule engine minh bạch:
 
-Nếu guard không đạt, current signal tự chuyển về `DATA STALE` / `DATA CHECK`, không tạo Entry/SL/TP mới và Watchlist không phát notification BUY từ dữ liệu đó.
+1. Chọn baseline theo timeframe.
+2. Điều chỉnh theo Market Regime và ADX.
+3. Kiểm tra volatility bằng ATR%.
+4. Bổ sung cảnh báo RSI/mua đuổi.
+5. Trả về `effective profile`, confidence, timeframe-fit và lý do.
 
-### 2. Data Quality UI
-Analyze và Positions có thanh Data Quality gọn. Bấm mở để xem:
+Khi AUTO chọn một effective profile, **Backtest dùng cố định chính profile đó trên toàn bộ lịch sử của lần phân tích**. Kết quả calibrated rate không trộn tín hiệu Ngắn hạn với Swing/Trung hạn/Dài hạn.
 
-- Quality score 0–100;
-- tuổi dữ liệu và freshness threshold;
-- số nến;
-- OHLC/duplicate/gaps/zero-volume;
-- provider route Primary/Fallback;
-- provider latency;
-- lý do fallback;
-- blockers/warnings.
+## Positions
 
-Diagnostics chi tiết không được nhét vào Dashboard Analyze để giữ mobile UI gọn.
+Khi lưu vị thế, MarketScope lưu **effective profile** tại thời điểm phân tích. Exit Planner tiếp tục dùng profile đã khóa cho vị thế đó thay vì tự đổi horizon về sau.
 
-### 3. Provider Diagnostics
-Market Data Gateway ghi trace an toàn cho từng snapshot:
+Dữ liệu position cũ từ V0.8.0 không có profile sẽ migrate an toàn về **SWING**, tương đương logic mặc định trước V0.9.0.
 
-- requested mode;
-- selected provider;
-- `PRIMARY / FALLBACK / DIRECT`;
-- SSI configured hay chưa;
-- fallback reason;
-- provider latency.
+## Watchlist
 
-Không có API key/secret trong response.
+Mỗi item lưu riêng `market + symbol + interval + profile`. Có thể theo dõi cùng mã ở các strategy khác nhau. Với AUTO, card hiển thị `AUTO → effective profile` của dữ liệu mới nhất.
 
-### 4. System Health trong Settings
-Endpoint:
+Watchlist cũ không có profile được migrate về SWING để bảo toàn hành vi cũ.
 
-```text
-GET /api/system/health
+## Data Quality vẫn là lớp chặn cuối
+
+Strategy Profile không được phép vượt Data Quality Guard. Nếu dữ liệu stale, thiếu nến hoặc OHLC invalid, hệ thống khóa Signal/Entry/SL/TP dù profile đang cho setup BUY.
+
+## Stack
+
+- Next.js 16
+- React 19
+- TypeScript 5.8
+- Lightweight Charts 5
+- Binance Spot public market data
+- SSI FastConnect cho Stock VN khi cấu hình credentials
+- Yahoo Finance fallback cho preview/backup
+- PWA Service Worker
+
+## Chạy local
+
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
 ```
 
-Settings hiển thị:
-
-- Binance REST health;
-- SSI FastConnect status/configuration;
-- Yahoo fallback health;
-- provider đang được chọn;
-- Technical Engine self-test;
-- Signal Engine self-test;
-- Backtest Engine self-test;
-- cache/runtime policies;
-- trạng thái tổng `HEALTHY / DEGRADED / PROVIDER_ERROR`.
-
-Yahoo là nguồn fallback/unofficial nên khi hệ thống đang phải dùng Yahoo, System Health cố ý hiển thị `DEGRADED` thay vì đánh đồng với primary production provider.
-
-### 5. Retry / error hardening
-
-- Binance tiếp tục thử nhiều REST base URL.
-- SSI SDK có timeout/retry.
-- Yahoo thử `query1` rồi `query2` trước khi trả lỗi.
-- API trả `correlationId` để đối chiếu log.
-- Service Worker không cache `/api/*`.
-- Portfolio endpoint tiếp tục `no-store`.
-
-### 6. Portfolio data quality
-Portfolio API đánh dấu quality theo từng vị thế. Danh mục cảnh báo khi một hoặc nhiều mã đang dùng data degraded/stale để người dùng không nhầm số liệu risk là realtime tuyệt đối.
-
-## Guardrails sản phẩm
-
-- Spot / LONG-only.
-- Không Futures.
-- Không SHORT.
-- Không leverage recommendation.
-- Không auto trade.
-- Signal Score không phải xác suất thắng.
-- Calibrated win-rate là thống kê lịch sử có điều kiện, không đảm bảo tương lai.
-- Data Quality Guard giảm rủi ro đầu vào nhưng không đảm bảo provider luôn chính xác.
+Mở `http://localhost:3000`.
 
 ## Deploy Vercel
 
-1. Push source lên GitHub.
-2. Import repository vào Vercel.
-3. Framework Preset: **Next.js**.
-4. Build Command: mặc định `next build`.
-5. **Output Directory: để trống.**
-6. Không dùng `output: "export"` và không cấu hình `out`.
+Xem `DEPLOY-VERCEL.md`. Không cấu hình `Output Directory = out`; để Vercel nhận diện Next.js mặc định.
 
-Crypto public data không cần key. Stock VN xem `.env.example` để cấu hình SSI FastConnect.
+## Lưu ý về xác suất
 
-Sau deploy vào **Settings → System Health & Diagnostics** và bấm `Kiểm tra lại` để xác nhận provider/engine tại chính môi trường Vercel.
+Signal Score không phải xác suất thắng. Calibrated win rate chỉ là thống kê lịch sử theo profile/setup/regime/score band khi đủ mẫu và không đảm bảo kết quả tương lai.
 
-## Phiên bản tiếp theo
+## Roadmap
 
-Theo roadmap sau V0.8.0: **V0.9.0 — Strategy Profiles & Smart Analysis**. Bản này sẽ cho phép chọn phong cách Ngắn hạn / Swing / Trung hạn / Dài hạn để Entry, target, holding horizon và trọng số Signal Engine thích ứng theo chiến lược, vẫn giữ Spot-only.
+- V0.1.0 Market Data ✅
+- V0.2.0 Technical & Regime ✅
+- V0.3.0 Entry / SL / TP ✅
+- V0.4.0 Position / Exit ✅
+- V0.5.0 Backtest & Calibration ✅
+- V0.6.0 Watchlist & Monitoring ✅
+- V0.7.0 Portfolio & Risk ✅
+- V0.8.0 Quality & Observability ✅
+- **V0.9.0 Strategy Profiles & Smart Analysis ✅**
+- V1.0.0 Production Ready → tiếp theo

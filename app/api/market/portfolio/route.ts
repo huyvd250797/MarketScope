@@ -5,7 +5,8 @@ import { analyzeTechnical } from '@/lib/analysis/technical';
 import { assessMarketSnapshot, applyDataQualityGuard } from '@/lib/market/quality';
 import { analyzeTradeSignal } from '@/lib/analysis/signal';
 import { analyzePositionExit } from '@/lib/analysis/position';
-import type { Interval, MarketType, PortfolioCurrencyBucket, PortfolioPositionSnapshot, PortfolioRiskSnapshot } from '@/lib/market/types';
+import { normalizeStrategyProfile } from '@/lib/analysis/strategy';
+import type { EffectiveStrategyProfile, Interval, MarketType, PortfolioCurrencyBucket, PortfolioPositionSnapshot, PortfolioRiskSnapshot } from '@/lib/market/types';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -18,6 +19,7 @@ type InputPosition = {
   interval?: unknown;
   entryPrice?: unknown;
   quantity?: unknown;
+  strategyProfile?: unknown;
 };
 
 function finitePositive(value: unknown, fallback?: number) {
@@ -54,8 +56,10 @@ export async function POST(request: NextRequest) {
       const interval: Interval = intervals.has(intervalCandidate) && !(market === 'STOCK' && intervalCandidate === '4h') ? intervalCandidate : market === 'STOCK' ? '1d' : '1h';
       const entryPrice = finitePositive(item.entryPrice);
       const quantity = finitePositive(item.quantity, 1) as number;
+      const normalizedProfile = normalizeStrategyProfile(String(item.strategyProfile || 'SWING'));
+      const strategyProfile: EffectiveStrategyProfile = normalizedProfile === 'AUTO' ? 'SWING' : normalizedProfile;
       if (!symbol || !entryPrice) throw new Error('Có vị thế thiếu mã hoặc giá vốn hợp lệ.');
-      return { market, symbol, interval, entryPrice, quantity };
+      return { market, symbol, interval, entryPrice, quantity, strategyProfile };
     });
 
     const positions = await mapLimit(valid, 3, async (item): Promise<PortfolioPositionSnapshot> => {
@@ -64,8 +68,8 @@ export async function POST(request: NextRequest) {
       snapshot.quality = quality;
       if (!quality.analysisAllowed) throw new Error(`${snapshot.symbol}: ${quality.blockers[0] || 'Data Quality không đủ để phân tích vị thế'}`);
       const analysis = analyzeTechnical(snapshot.candles, item.market);
-      const signal = applyDataQualityGuard(analyzeTradeSignal(snapshot.candles, item.market, analysis), quality);
-      const position = analyzePositionExit(snapshot.candles, item.market, item.interval, analysis, signal, item.entryPrice);
+      const signal = applyDataQualityGuard(analyzeTradeSignal(snapshot.candles, item.market, analysis, item.strategyProfile), quality);
+      const position = analyzePositionExit(snapshot.candles, item.market, item.interval, analysis, signal, item.entryPrice, item.strategyProfile);
       const costBasis = item.entryPrice * item.quantity;
       const currentValue = snapshot.currentPrice * item.quantity;
       const pnlValue = currentValue - costBasis;
@@ -78,6 +82,7 @@ export async function POST(request: NextRequest) {
         currency: snapshot.currency,
         quantity: item.quantity,
         entryPrice: item.entryPrice,
+        strategyProfile: item.strategyProfile,
         currentPrice: snapshot.currentPrice,
         costBasis,
         currentValue,
@@ -150,7 +155,7 @@ export async function POST(request: NextRequest) {
         'Không cộng trực tiếp VND với USD/USDT; MarketScope tách danh mục theo từng đồng tiền để tránh tổng vốn sai.',
         'Risk to Stop là ước lượng theo mốc bảo vệ kỹ thuật của từng Position Engine, không phải mức lỗ tối đa được đảm bảo.',
         'Dữ liệu giá vốn/số lượng chỉ được dùng trong request tính danh mục và không được lưu bởi API MarketScope.',
-        'V0.8.0 đánh dấu Data Quality theo từng vị thế; dữ liệu stale/degraded phải được kiểm tra trước khi ra quyết định.',
+        'V0.9.0 giữ Data Quality theo từng vị thế; dữ liệu stale/degraded phải được kiểm tra trước khi ra quyết định.',
       ],
     };
     return NextResponse.json({ ...result, correlationId }, { headers: { 'Cache-Control': 'no-store', 'X-Correlation-Id': correlationId } });

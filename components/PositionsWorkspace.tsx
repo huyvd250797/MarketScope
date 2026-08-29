@@ -4,7 +4,8 @@ import MarketChart, { type ChartOverlays } from './MarketChart';
 import PositionPanel from './PositionPanel';
 import PortfolioPanel from './PortfolioPanel';
 import DataQualityPanel from './DataQualityPanel';
-import type { Interval, MarketSnapshot, MarketType, PositionExitAnalysis, SavedPosition } from '@/lib/market/types';
+import StrategyProfileSelector, { effectiveProfileLabel } from './StrategyProfileSelector';
+import type { Interval, MarketSnapshot, MarketType, PositionExitAnalysis, SavedPosition, StrategyProfileKey } from '@/lib/market/types';
 
 type Props = {
   market: MarketType;
@@ -21,6 +22,8 @@ type Props = {
   inputError: string | null;
   positions: SavedPosition[];
   dark: boolean;
+  strategyProfile: StrategyProfileKey;
+  onStrategy: (profile: StrategyProfileKey) => void;
   onMarket: (market: MarketType) => void;
   onQuery: (value: string) => void;
   onSubmit: () => void;
@@ -38,7 +41,7 @@ type Props = {
 const positionOverlays: ChartOverlays = { ema20: true, ema50: true, ema200: false, vwap: true, signals: false, position: true };
 
 export default function PositionsWorkspace(props: Props) {
-  const { market, query, interval, availableIntervals, snapshot, loading, error, correlationId, entryDraft, quantityDraft, analysis, inputError, positions, dark } = props;
+  const { market, query, interval, availableIntervals, snapshot, loading, error, correlationId, entryDraft, quantityDraft, analysis, inputError, positions, dark, strategyProfile } = props;
   const digits = snapshot?.currency === 'VND' ? 0 : (snapshot?.currentPrice || 0) >= 1000 ? 2 : 6;
 
   return (
@@ -60,7 +63,7 @@ export default function PositionsWorkspace(props: Props) {
                 <button className="saved-position-main" onClick={() => props.onOpen(item)}>
                   <span className="saved-position-market">{item.market === 'CRYPTO' ? 'CRYPTO' : 'STOCK VN'}</span>
                   <strong>{item.symbol}</strong>
-                  <small>Giá vốn: {formatPositionPrice(item)} • Số lượng: {formatQuantity(item.quantity || 1)} • {formatInterval(item.interval)}</small>
+                  <small>Giá vốn: {formatPositionPrice(item)} • Số lượng: {formatQuantity(item.quantity || 1)} • {formatInterval(item.interval)} • {effectiveProfileLabel(item.strategyProfile || 'SWING')}</small>
                 </button>
                 <button className="saved-position-delete" aria-label={`Xóa vị thế ${item.symbol}`} onClick={() => props.onDelete(item)}>×</button>
               </article>
@@ -89,6 +92,8 @@ export default function PositionsWorkspace(props: Props) {
           {availableIntervals.map((item) => <button className={interval === item ? 'active' : ''} key={item} onClick={() => props.onInterval(item)}>{formatInterval(item)}</button>)}
         </div>
       </div>
+
+      <StrategyProfileSelector value={strategyProfile} strategy={snapshot?.strategy} market={market} onChange={props.onStrategy} />
 
       {loading ? (
         <div className="position-module-loading"><div className="pulse" /><span>Đang tải dữ liệu vị thế…</span></div>
@@ -129,7 +134,7 @@ export default function PositionsWorkspace(props: Props) {
         <div className="positions-empty compact-empty"><span>◎</span><strong>Chưa có vị thế đã lưu</strong><p>Chọn mã, nhập giá đã mua và bấm “Phân tích vị thế”. Vị thế sẽ được lưu cục bộ trên thiết bị.</p></div>
       )}
 
-      <div className="settings-card muted-card"><strong>Phạm vi Positions V0.8.0</strong><p>Portfolio & Risk Management tiếp tục nằm trong Positions. V0.8.0 bổ sung Data Quality theo từng mã; nếu dữ liệu stale/degraded cần kiểm tra provider trước khi dựa vào kế hoạch thoát. Giá vốn + số lượng vẫn chỉ lưu localStorage.</p></div>
+      <div className="settings-card muted-card"><strong>Phạm vi Positions V0.9.0</strong><p>Mỗi vị thế lưu effective Strategy Profile tại thời điểm phân tích. Exit Planner dùng đúng profile đó cho mốc bảo vệ và horizon; Data Quality Guard vẫn được giữ nguyên. Giá vốn + số lượng + profile chỉ lưu localStorage.</p></div>
     </section>
   );
 }

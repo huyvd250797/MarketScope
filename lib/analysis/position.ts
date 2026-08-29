@@ -1,4 +1,5 @@
-import type { Candle, Interval, MarketType, PositionExitAnalysis, TechnicalAnalysis, TradeSignal } from '@/lib/market/types';
+import { strategyConfig } from '@/lib/analysis/strategy';
+import type { Candle, EffectiveStrategyProfile, Interval, MarketType, PositionExitAnalysis, TechnicalAnalysis, TradeSignal } from '@/lib/market/types';
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
@@ -40,17 +41,16 @@ function uniqueAscending(values: number[], tolerance: number) {
   return unique;
 }
 
-function horizonGuide(interval: Interval) {
-  const map: Record<Interval, { short: string; medium: string; long: string }> = {
-    '15m': { short: '4–12 giờ', medium: '1–3 ngày', long: '3–7 ngày' },
-    '1h': { short: '1–3 ngày', medium: '3–10 ngày', long: '1–4 tuần' },
-    '4h': { short: '3–7 ngày', medium: '1–4 tuần', long: '1–3 tháng' },
-    '1d': { short: '1–3 tuần', medium: '1–3 tháng', long: '3–6 tháng' },
-    '1w': { short: '1–2 tháng', medium: '2–6 tháng', long: '6–18 tháng' },
+function horizonGuide(interval: Interval, profile: EffectiveStrategyProfile) {
+  const profileMap: Record<EffectiveStrategyProfile, { short: string; medium: string; long: string }> = {
+    SHORT_TERM: { short: '4–12 giờ', medium: '1–3 ngày', long: '3–7 ngày' },
+    SWING: { short: '3–7 ngày', medium: '1–3 tuần', long: '2–6 tuần' },
+    MEDIUM_TERM: { short: '2–4 tuần', medium: '1–3 tháng', long: '3–6 tháng' },
+    LONG_TERM: { short: '1–3 tháng', medium: '3–9 tháng', long: '6–18 tháng' },
   };
   return {
-    ...map[interval],
-    note: 'Đây là khung lập kế hoạch theo timeframe đang xem, không phải dự đoán thời gian chắc chắn để giá chạm mục tiêu.',
+    ...profileMap[profile],
+    note: `Khung mục tiêu đang theo profile ${strategyConfig(profile).label} trên timeframe ${interval.toUpperCase()}; đây không phải dự đoán chắc chắn thời gian chạm target.`,
   };
 }
 
@@ -74,7 +74,9 @@ export function analyzePositionExit(
   analysis: TechnicalAnalysis,
   signal: TradeSignal | undefined,
   entryPrice: number,
+  profile: EffectiveStrategyProfile = 'SWING',
 ): PositionExitAnalysis {
+  const profileConfig = strategyConfig(profile);
   if (!Number.isFinite(entryPrice) || entryPrice <= 0) throw new Error('Giá vào lệnh phải lớn hơn 0.');
   const current = candles[candles.length - 1];
   if (!current || !Number.isFinite(current.close) || current.close <= 0) throw new Error('Không đủ dữ liệu giá để phân tích vị thế.');
@@ -95,16 +97,16 @@ export function analyzePositionExit(
 
   const pnlPerUnit = currentPrice - entryPrice;
   const pnlPercent = (pnlPerUnit / entryPrice) * 100;
-  const profitProtectThreshold = market === 'CRYPTO' ? 4 : 2.5;
+  const profitProtectThreshold = profileConfig.position.profitProtectPercent[market];
 
-  const baseStopByEntry = entryPrice - atr * (market === 'CRYPTO' ? 1.2 : 1.0);
+  const baseStopByEntry = entryPrice - atr * profileConfig.position.stopAtr;
   const baseStopByStructure = technicalFloor != null ? technicalFloor - atr * 0.28 : baseStopByEntry;
   let defensiveStop = Math.min(baseStopByEntry, baseStopByStructure);
   if (!(defensiveStop > 0)) defensiveStop = entryPrice * (market === 'CRYPTO' ? 0.94 : 0.96);
 
   const trailingReference = nearestBelow([ema20, vwap, pivotSupport, ema50], currentPrice);
   if (pnlPercent >= profitProtectThreshold) {
-    const technicalTrail = trailingReference != null ? trailingReference - atr * 0.22 : currentPrice - atr * 1.05;
+    const technicalTrail = trailingReference != null ? trailingReference - atr * profileConfig.position.trailingAtr : currentPrice - atr * Math.max(0.8, profileConfig.position.stopAtr * 0.9);
     const breakEvenBuffer = entryPrice * (market === 'CRYPTO' ? 1.003 : 1.002);
     defensiveStop = Math.max(defensiveStop, technicalTrail, breakEvenBuffer);
     defensiveStop = Math.min(defensiveStop, currentPrice - atr * 0.18);
@@ -119,9 +121,10 @@ export function analyzePositionExit(
     pivots.highs.filter((value) => value > targetFloor + atr * 0.2),
     Math.max(atr * 0.18, currentPrice * 0.001),
   );
-  const shortBase = targetFloor + atr * 0.9;
-  const mediumBase = targetFloor + atr * 2.1;
-  const longBase = targetFloor + atr * 3.8;
+  const [shortAtr, mediumAtr, longAtr] = profileConfig.position.targetsAtr;
+  const shortBase = targetFloor + atr * shortAtr;
+  const mediumBase = targetFloor + atr * mediumAtr;
+  const longBase = targetFloor + atr * longAtr;
 
   let shortTarget = structureAwareTarget(shortBase, futureHighs[0], currentPrice, atr);
   let mediumTarget = structureAwareTarget(mediumBase, futureHighs[1] ?? futureHighs[0], currentPrice, atr);
@@ -161,7 +164,7 @@ export function analyzePositionExit(
     RISK: 'Vùng rủi ro',
   };
 
-  const guide = horizonGuide(interval);
+  const guide = horizonGuide(interval, profile);
   const exits: PositionExitAnalysis['exits'] = [
     {
       key: 'SHORT', label: 'Ngắn hạn', target: round(shortTarget) as number,
@@ -222,6 +225,7 @@ export function analyzePositionExit(
         : 'Mốc bảo vệ kỹ thuật tham chiếu ATR + support/EMA/VWAP; đây không phải mức rủi ro phù hợp cho mọi tài khoản.',
     },
     exits,
+    strategy: { profile, label: profileConfig.label, holdingGuide: profileConfig.holdingGuide },
     context: {
       atr: round(atr) as number,
       atrPercent: round(atrPercent, 2),
@@ -235,10 +239,11 @@ export function analyzePositionExit(
     reasons,
     warnings,
     guardrails: [
+      `Position Engine khóa theo profile ${profileConfig.label} (${profileConfig.holdingGuide}) để không tự đổi horizon giữa chừng.`,
       'Position Engine phân tích vị thế LONG đã vào; không tự đặt lệnh, không dùng leverage recommendation và không tạo lệnh SHORT.',
       'Ngắn/trung/dài hạn là khung lập kế hoạch theo timeframe, không phải ETA chắc chắn để chạm target.',
       'Không suy diễn win rate hoặc xác suất thắng từ Signal Score/Position status; Các thống kê này chỉ được hiển thị từ Backtest & Calibration riêng.',
-      'Portfolio V0.8.0 tính phân bổ và concentration risk theo số lượng đã lưu; chưa tự động đặt lệnh hay quyết định tỷ lệ bán.',
+      'Portfolio V0.9.0 tính phân bổ và concentration risk theo số lượng đã lưu; chưa tự động đặt lệnh hay quyết định tỷ lệ bán.',
     ],
     disclaimer: 'Exit Planner là phân tích rule-based từ giá vốn, OHLCV, ATR, EMA/VWAP, support/resistance và market regime. Các mốc thoát/chốt lời chỉ để tham khảo và phải được đánh giá lại khi dữ liệu thị trường thay đổi.',
   };

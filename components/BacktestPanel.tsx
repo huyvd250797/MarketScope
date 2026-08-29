@@ -23,7 +23,7 @@ export default function BacktestPanel({ backtest, snapshot }: Props) {
       <div className="backtest-title-row">
         <div>
           <h2>Độ tin cậy lịch sử</h2>
-          <span>Backtest không look-ahead • chỉ là thống kê tham khảo cho setup hiện tại</span>
+          <span>Profile {profileLabel(backtest.strategyProfile)} • không look-ahead • không trộn horizon giữa các profile</span>
         </div>
         <span className={`calibration-quality ${qualityTone}`}>{calibration.qualityLabel}</span>
       </div>
@@ -175,4 +175,11 @@ function statusLabel(status: BacktestResult['status']) {
   if (status === 'READY') return 'READY';
   if (status === 'LIMITED') return 'LIMITED SAMPLE';
   return 'INSUFFICIENT';
+}
+
+function profileLabel(value: BacktestResult['strategyProfile']) {
+  if (value === 'SHORT_TERM') return 'Ngắn hạn';
+  if (value === 'MEDIUM_TERM') return 'Trung hạn';
+  if (value === 'LONG_TERM') return 'Dài hạn';
+  return 'Swing';
 }
