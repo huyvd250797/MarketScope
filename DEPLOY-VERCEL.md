@@ -1,60 +1,54 @@
-# Deploy MarketScope V0.8.0 lên Vercel
+# Deploy MarketScope V0.9.0 lên Vercel
 
 ## 1. Push source lên GitHub
 
 ```bash
 git init
 git add .
-git commit -m "MarketScope V0.8.0"
+git commit -m "MarketScope V0.9.0"
 git branch -M main
-git remote add origin <GITHUB_REPO_URL>
+git remote add origin <YOUR_GITHUB_REPO>
 git push -u origin main
 ```
 
-## 2. Tạo Project trên Vercel
+## 2. Import vào Vercel
 
-- Vercel → Add New → Project.
-- Import GitHub repository.
-- Framework Preset: `Next.js`.
-- Root Directory: `./` nếu source nằm ở root repo.
-- Build Command: Default.
-- Install Command: Default.
-- **Output Directory: để trống. Không nhập `out`.**
-- Deploy.
+- Add New → Project → Import Git Repository.
+- Framework Preset: **Next.js**.
+- Build Command: để mặc định `next build` / `npm run build`.
+- **Output Directory: để trống**.
+- Không nhập `out` và không bật static export.
 
-## 3. Environment Variables cho Stock VN
+## 3. Crypto
 
-Không cấu hình SSI: `AUTO` sẽ dùng Yahoo fallback nếu `ALLOW_STOCK_FALLBACK=true`.
+Binance Spot public market data không cần API key.
 
-Production nên cấu hình SSI:
+## 4. Stock VN
+
+Cấu hình trong Vercel → Settings → Environment Variables nếu dùng SSI:
 
 ```text
 STOCK_PROVIDER=AUTO
 ALLOW_STOCK_FALLBACK=true
-SSI_CLIENT_ID=<SSI client id>
-SSI_API_KEY=<SSI api key>
-SSI_API_SECRET=<SSI api secret>
+SSI_CLIENT_ID=...
+SSI_API_KEY=...
+SSI_API_SECRET=...
 ```
 
-Optional health probe symbol:
+Không commit credential thật vào GitHub.
 
-```text
-HEALTH_STOCK_SYMBOL=FPT
-```
+Nếu chưa có SSI, app có thể dùng Yahoo Finance fallback khi `ALLOW_STOCK_FALLBACK=true`. System Health sẽ đánh dấu môi trường fallback là `DEGRADED` theo chủ đích.
 
-Không commit `.env.local`.
+## 5. Checklist sau deploy
 
-## 4. Checklist sau deploy
+1. Analyze BTCUSDT 1h với AUTO và kiểm tra effective profile.
+2. Đổi lần lượt Ngắn hạn/Swing/Trung hạn/Dài hạn; xác nhận Entry/SL/TP thay đổi.
+3. Mở Backtest; profile hiển thị phải trùng effective profile.
+4. Lưu một Position; vào Positions kiểm tra profile được khóa.
+5. Thêm Watchlist với AUTO và một profile cố định.
+6. Settings → System Health: Strategy Profile Engine phải PASS.
+7. Kiểm tra Data Quality; stale/invalid data vẫn phải khóa BUY.
 
-1. Analyze → Crypto → BTCUSDT → 1h.
-2. Kiểm tra Data Quality strip phải hiện score/freshness/provider trace.
-3. Bấm mở Data Quality để xem candle integrity và latency.
-4. Entry/SL/TP chỉ được hiện khi `signalAllowed=true`.
-5. Watchlist phải không phát signal alert nếu quality đang block.
-6. Positions phải hiển thị Data Quality của mã đang phân tích.
-7. Portfolio phải tiếp tục tách VND với USD/USDT.
-8. Settings → **System Health & Diagnostics** → `Kiểm tra lại`.
-9. Xác nhận Binance, Stock provider đang chọn và 3 analysis engines.
-10. Nếu Stock dùng Yahoo fallback, overall có thể là `DEGRADED` — đây là chủ đích của V0.8.0.
-11. Nếu có lỗi API, ghi lại `correlationId` hiển thị trên UI/log.
-12. Không cấu hình `out`; project này là Next.js server app.
+## 6. PWA/cache
+
+Service Worker dùng cache `marketscope-shell-v0.9.0`. `/api/*` không bị cache bởi Service Worker để tránh hiển thị dữ liệu thị trường cũ.

@@ -27,9 +27,9 @@ export default function PositionPanel({ snapshot, entryDraft, quantityDraft, ana
       <div className="position-title-row">
         <div>
           <h2>Position / Exit Planner</h2>
-          <span>Nhập giá đã mua → theo dõi P/L • bảo vệ vốn • mục tiêu ngắn / trung / dài hạn</span>
+          <span>Nhập giá đã mua → P/L • bảo vệ vốn • mục tiêu theo Strategy Profile</span>
         </div>
-        <span className="position-version">POSITIONS</span>
+        <span className="position-version">{analysis ? analysis.strategy.label.toUpperCase() : 'POSITIONS'}</span>
       </div>
 
       <div className="position-input-box">
@@ -66,7 +66,7 @@ export default function PositionPanel({ snapshot, entryDraft, quantityDraft, ana
         <>
           <div className={`position-hero ${pnlTone}`}>
             <div>
-              <span className="position-eyebrow">TRẠNG THÁI VỊ THẾ</span>
+              <span className="position-eyebrow">TRẠNG THÁI VỊ THẾ • {analysis.strategy.label.toUpperCase()}</span>
               <strong>{analysis.statusLabel}</strong>
               <p>Giá vốn {formatPrice(analysis.entryPrice, digits)} → hiện tại {formatPrice(analysis.currentPrice, digits)}</p>
             </div>
@@ -95,7 +95,7 @@ export default function PositionPanel({ snapshot, entryDraft, quantityDraft, ana
           </div>
 
           <div className="exit-plan-title">
-            <div><strong>Các mốc thoát / chốt lời</strong><span>Theo timeframe đang xem • không phải ETA chắc chắn</span></div>
+            <div><strong>Các mốc thoát / chốt lời</strong><span>{analysis.strategy.label} • {analysis.strategy.holdingGuide} • không phải ETA chắc chắn</span></div>
           </div>
           <div className="exit-plan-grid">
             {analysis.exits.map((plan) => (

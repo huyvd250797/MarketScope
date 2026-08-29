@@ -202,7 +202,7 @@ export function applyDataQualityGuard(signal: TradeSignal, quality: DataQualityR
     riskReward: { toTP1: null, toTP2: null, toTP3: null },
     warnings: [`Data Quality Guard: ${reason}`, ...signal.warnings].slice(0, 8),
     guardrails: [
-      `V0.8.0 khóa Entry/SL/TP khi data quality không đạt: ${quality.statusLabel}.`,
+      `V0.9.0 khóa Entry/SL/TP khi data quality không đạt: ${quality.statusLabel}.`,
       ...signal.guardrails,
     ],
     disclaimer: `${signal.disclaimer} Tín hiệu hiện tại đang bị Data Quality Guard khóa cho tới khi dữ liệu đạt điều kiện freshness/integrity.`,

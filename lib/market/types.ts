@@ -2,6 +2,25 @@ export type MarketType = 'CRYPTO' | 'STOCK';
 
 export type Interval = '15m' | '1h' | '4h' | '1d' | '1w';
 
+export type StrategyProfileKey = 'AUTO' | 'SHORT_TERM' | 'SWING' | 'MEDIUM_TERM' | 'LONG_TERM';
+export type EffectiveStrategyProfile = Exclude<StrategyProfileKey, 'AUTO'>;
+
+export type StrategyProfileAnalysis = {
+  requested: StrategyProfileKey;
+  effective: EffectiveStrategyProfile;
+  effectiveLabel: string;
+  recommended: EffectiveStrategyProfile;
+  recommendedLabel: string;
+  autoApplied: boolean;
+  confidence: number;
+  timeframeFit: 'GOOD' | 'ACCEPTABLE' | 'MISMATCH';
+  timeframeFitLabel: string;
+  preferredIntervals: Interval[];
+  holdingGuide: string;
+  description: string;
+  rationale: string[];
+};
+
 export type Candle = {
   time: number;
   open: number;
@@ -55,6 +74,7 @@ export type SignalSetup = 'TREND_PULLBACK' | 'BREAKOUT' | 'RANGE_REBOUND' | 'NO_
 
 export type TradeSignal = {
   generatedAt: string;
+  strategy: { profile: EffectiveStrategyProfile; label: string; holdingGuide: string; buyThreshold: number };
   side: 'LONG';
   decision: SignalDecision;
   decisionLabel: string;
@@ -122,6 +142,7 @@ export type PositionExitAnalysis = {
     horizon: string;
     note: string;
   }>;
+  strategy: { profile: EffectiveStrategyProfile; label: string; holdingGuide: string };
   context: {
     atr: number;
     atrPercent: number | null;
@@ -216,6 +237,7 @@ export type BacktestResult = {
   recentTrades: BacktestTrade[];
   methodology: string[];
   disclaimer: string;
+  strategyProfile: EffectiveStrategyProfile;
 };
 
 export type SymbolItem = {
@@ -250,6 +272,7 @@ export type MarketSnapshot = {
   backtest?: BacktestResult;
   quality?: DataQualityReport;
   providerDiagnostics?: ProviderDiagnostics;
+  strategy?: StrategyProfileAnalysis;
   fallbackUsed?: boolean;
   warning?: string;
 };
@@ -338,6 +361,7 @@ export type WatchlistMonitorSnapshot = {
   changePercent: number | null;
   marketState: string;
   dataAt: string;
+  strategy: StrategyProfileAnalysis;
   regime: {
     key: TechnicalAnalysis['regime']['key'];
     label: string;
@@ -377,6 +401,7 @@ export type SavedPosition = {
   entryPrice: number;
   quantity?: number;
   interval: Interval;
+  strategyProfile?: EffectiveStrategyProfile;
   savedAt: string;
 };
 
@@ -387,6 +412,7 @@ export type PortfolioPositionSnapshot = {
   currency: string;
   quantity: number;
   entryPrice: number;
+  strategyProfile: EffectiveStrategyProfile;
   currentPrice: number;
   costBasis: number;
   currentValue: number;

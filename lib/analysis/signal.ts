@@ -1,4 +1,5 @@
-import type { Candle, MarketType, TechnicalAnalysis, TradeSignal } from '@/lib/market/types';
+import { strategyConfig } from '@/lib/analysis/strategy';
+import type { Candle, EffectiveStrategyProfile, MarketType, TechnicalAnalysis, TradeSignal } from '@/lib/market/types';
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(max, value));
 
@@ -46,7 +47,8 @@ function signalLabel(score: number) {
   return 'Đồng thuận thấp';
 }
 
-export function analyzeTradeSignal(candles: Candle[], market: MarketType, analysis: TechnicalAnalysis): TradeSignal {
+export function analyzeTradeSignal(candles: Candle[], market: MarketType, analysis: TechnicalAnalysis, profile: EffectiveStrategyProfile = 'SWING'): TradeSignal {
+  const profileConfig = strategyConfig(profile);
   const current = candles[candles.length - 1];
   const currentPrice = current?.close ?? 0;
   const atr = analysis.indicators.atr14.value ?? (currentPrice > 0 ? currentPrice * (market === 'CRYPTO' ? 0.02 : 0.015) : 0);
@@ -100,14 +102,14 @@ export function analyzeTradeSignal(candles: Candle[], market: MarketType, analys
     entryCenter = rangeSupport + atr * 0.35;
   }
 
-  const zoneHalf = setup === 'BREAKOUT' ? atr * 0.23 : atr * 0.30;
+  const zoneHalf = setup === 'BREAKOUT' ? atr * profileConfig.breakoutZoneAtr : atr * profileConfig.zoneAtr;
   let entryLow = Math.max(0, entryCenter - zoneHalf);
   let entryHigh = entryCenter + zoneHalf;
   if (entryHigh <= entryLow) entryHigh = entryLow + Math.max(atr * 0.25, currentPrice * 0.001);
   const entryMid = (entryLow + entryHigh) / 2;
 
   const structuralSupport = nearestBelow([pivotSupport, ema50, ema20, vwap], entryLow) ?? pivotSupport;
-  const stopByAtr = entryLow - atr * (setup === 'BREAKOUT' ? 1.05 : 0.9);
+  const stopByAtr = entryLow - atr * (setup === 'BREAKOUT' ? profileConfig.breakoutStopAtr : profileConfig.stopAtr);
   const stopByStructure = structuralSupport != null ? structuralSupport - atr * 0.3 : stopByAtr;
   let stopPrice = Math.min(stopByAtr, stopByStructure);
   if (!(stopPrice > 0 && stopPrice < entryLow)) stopPrice = Math.max(entryLow - atr, entryLow * 0.94);
@@ -115,12 +117,13 @@ export function analyzeTradeSignal(candles: Candle[], market: MarketType, analys
   const riskPerUnit = Math.max(entryMid - stopPrice, currentPrice * 0.001);
   const stopRiskPercent = entryMid > 0 ? (riskPerUnit / entryMid) * 100 : 0;
 
-  let tp1 = entryMid + riskPerUnit;
-  if (pivotResistance != null && pivotResistance > entryMid + riskPerUnit * 0.65 && pivotResistance < entryMid + riskPerUnit * 1.45) {
-    tp1 = Math.max(entryMid + riskPerUnit * 0.7, pivotResistance - atr * 0.08);
+  const [targetR1, targetR2, targetR3] = profileConfig.targetR;
+  let tp1 = entryMid + riskPerUnit * targetR1;
+  if (pivotResistance != null && pivotResistance > entryMid + riskPerUnit * Math.max(0.55, targetR1 * 0.65) && pivotResistance < entryMid + riskPerUnit * (targetR1 + 0.5)) {
+    tp1 = Math.max(entryMid + riskPerUnit * Math.max(0.65, targetR1 * 0.72), pivotResistance - atr * 0.08);
   }
-  const tp2 = Math.max(entryMid + riskPerUnit * 2, tp1 + atr * 0.8);
-  const tp3 = Math.max(entryMid + riskPerUnit * 3, tp2 + atr * 1.1);
+  const tp2 = Math.max(entryMid + riskPerUnit * targetR2, tp1 + atr * Math.max(0.55, targetR2 - targetR1));
+  const tp3 = Math.max(entryMid + riskPerUnit * targetR3, tp2 + atr * Math.max(0.8, targetR3 - targetR2));
 
   const rr1 = (tp1 - entryMid) / riskPerUnit;
   const rr2 = (tp2 - entryMid) / riskPerUnit;
@@ -174,6 +177,12 @@ export function analyzeTradeSignal(candles: Candle[], market: MarketType, analys
   if (stopRiskPercent <= (market === 'CRYPTO' ? 6 : 4.5)) riskScore += 2;
   riskScore = clamp(riskScore, 0, 15);
 
+  trendScore = Math.round(clamp(trendScore * profileConfig.weights.trend, 0, 25));
+  momentumScore = Math.round(clamp(momentumScore * profileConfig.weights.momentum, 0, 20));
+  structureScore = Math.round(clamp(structureScore * profileConfig.weights.structure, 0, 20));
+  locationScore = Math.round(clamp(locationScore * profileConfig.weights.location, 0, 20));
+  riskScore = Math.round(clamp(riskScore * profileConfig.weights.risk, 0, 15));
+
   const breakdown = {
     trend: trendScore,
     momentum: momentumScore,
@@ -211,11 +220,11 @@ export function analyzeTradeSignal(candles: Candle[], market: MarketType, analys
   const hardAvoid = analysis.regime.direction === 'BEARISH' || (rsi ?? 0) >= 80 || extremeVolatility || score < 40;
   const rangeCandidate = analysis.regime.key === 'RANGE' && setup === 'RANGE_REBOUND' && (rsi ?? 50) <= 58;
   const bullishCandidate = analysis.regime.direction === 'BULLISH' && (setup === 'TREND_PULLBACK' || setup === 'BREAKOUT');
-  const inExecutableZone = currentPrice >= entryLow - atr * 0.15 && currentPrice <= entryHigh + atr * 0.35;
+  const inExecutableZone = currentPrice >= entryLow - atr * 0.15 && currentPrice <= entryHigh + atr * profileConfig.maxChaseAtr;
 
   let decision: TradeSignal['decision'] = 'WAIT';
   if (hardAvoid) decision = 'AVOID';
-  else if (dataSufficient && score >= 72 && (bullishCandidate || rangeCandidate) && inExecutableZone && (rsi ?? 50) <= 72 && rr1 >= 0.9) decision = 'BUY';
+  else if (dataSufficient && score >= profileConfig.buyThreshold && (bullishCandidate || rangeCandidate) && inExecutableZone && (rsi ?? 50) <= 72 && rr1 >= Math.min(0.9, targetR1)) decision = 'BUY';
 
   if (decision === 'AVOID') score = Math.min(score, 59);
   if (decision === 'BUY' && positiveFactors.length < 2) decision = 'WAIT';
@@ -239,6 +248,7 @@ export function analyzeTradeSignal(candles: Candle[], market: MarketType, analys
 
   return {
     generatedAt: new Date().toISOString(),
+    strategy: { profile, label: profileConfig.label, holdingGuide: profileConfig.holdingGuide, buyThreshold: profileConfig.buyThreshold },
     side: 'LONG',
     decision,
     decisionLabel: decision === 'BUY' ? 'BUY SETUP' : decision === 'WAIT' ? 'WAIT' : 'AVOID',
@@ -272,12 +282,13 @@ export function analyzeTradeSignal(candles: Candle[], market: MarketType, analys
     positiveFactors,
     warnings,
     guardrails: [
+      `Profile ${profileConfig.label}: Entry/SL/TP và trọng số Signal Score được hiệu chỉnh theo horizon ${profileConfig.holdingGuide}.`,
       'LONG-only: MarketScope hiện không tạo lệnh SHORT và không khuyến nghị đòn bẩy.',
       'Signal Score là điểm đồng thuận rule-based, không phải xác suất thắng.',
       'Không mua đuổi nếu giá đã vượt xa Entry Zone; chờ setup mới hoặc retest.',
       'Win rate/expectancy được tính riêng từ backtest lịch sử; không suy diễn trực tiếp từ Signal Score.',
     ],
-    disclaimer: 'Tín hiệu được tạo tự động từ OHLCV và chỉ báo kỹ thuật, mang tính tham khảo. Không có tín hiệu nào đảm bảo lợi nhuận; luôn tự đánh giá rủi ro trước khi giao dịch.',
+    disclaimer: `Tín hiệu ${profileConfig.label} được tạo tự động từ OHLCV và chỉ báo kỹ thuật, mang tính tham khảo. Không có tín hiệu nào đảm bảo lợi nhuận; luôn tự đánh giá rủi ro trước khi giao dịch.`,
   };
 }
 

@@ -1,6 +1,7 @@
 import { analyzeTechnical } from '@/lib/analysis/technical';
 import { analyzeTradeSignal } from '@/lib/analysis/signal';
 import { backtestSignalEngine } from '@/lib/analysis/backtest';
+import { resolveStrategyProfile } from '@/lib/analysis/strategy';
 import { probeBinanceHealth } from '@/lib/market/binance';
 import { hasSsiCredentials } from '@/lib/market/provider';
 import { probeSsiHealth } from '@/lib/market/ssi';
@@ -65,6 +66,13 @@ function engineChecks(): HealthCheckItem[] {
     return `EMA/RSI/MACD/ADX/ATR/VWAP self-test PASS • ${candles.length} nến synthetic.`;
   });
 
+  run('strategy', 'Strategy Profile Engine', () => {
+    if (!analysis) analysis = analyzeTechnical(candles, 'CRYPTO');
+    const strategy = resolveStrategyProfile('AUTO', 'CRYPTO', '1h', analysis);
+    if (!strategy.effective || strategy.confidence < 0 || strategy.confidence > 100) throw new Error('Strategy Profile self-test không hợp lệ');
+    return `AUTO → ${strategy.effectiveLabel} • confidence ${strategy.confidence}/100.`;
+  });
+
   run('signal', 'Signal Engine', () => {
     if (!analysis) analysis = analyzeTechnical(candles, 'CRYPTO');
     signal = analyzeTradeSignal(candles, 'CRYPTO', analysis);
@@ -120,7 +128,7 @@ export async function getSystemHealth(): Promise<SystemHealthSnapshot> {
 
   return {
     generatedAt: new Date().toISOString(),
-    version: '0.8.0',
+    version: '0.9.0',
     overall,
     overallLabel: overall === 'HEALTHY' ? 'Hệ thống ổn định' : overall === 'DEGRADED' ? 'Hệ thống đang dùng chế độ suy giảm/fallback' : 'Có thành phần đang lỗi',
     stockProviderMode: mode,
@@ -136,7 +144,7 @@ export async function getSystemHealth(): Promise<SystemHealthSnapshot> {
     notes: [
       'Health endpoint không trả API key/secret và không ghi credential vào response.',
       'Yahoo Finance là fallback/unofficial; nếu đang được chọn thì overall được đánh DEGRADED dù endpoint vẫn hoạt động.',
-      'Data Quality Guard của từng mã mới là lớp quyết định cuối cùng có cho phép phát Entry/SL/TP hay không.',
+      'Strategy Profile Engine quyết định horizon/weights trước Signal/Backtest; Data Quality Guard của từng mã vẫn là lớp quyết định cuối cùng có cho phép phát Entry/SL/TP hay không.',
     ],
   };
 }

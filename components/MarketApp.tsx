@@ -9,8 +9,9 @@ import WatchlistPanel, { watchlistKey, type WatchlistItem, type WatchlistState }
 import BacktestPanel from './BacktestPanel';
 import DataQualityPanel from './DataQualityPanel';
 import SystemHealthPanel from './SystemHealthPanel';
+import StrategyProfileSelector from './StrategyProfileSelector';
 import { analyzePositionExit } from '@/lib/analysis/position';
-import type { Interval, MarketSnapshot, MarketType, PositionExitAnalysis, SavedPosition, SymbolItem, WatchlistMonitorSnapshot } from '@/lib/market/types';
+import type { Interval, MarketSnapshot, MarketType, PositionExitAnalysis, SavedPosition, StrategyProfileKey, SymbolItem, WatchlistMonitorSnapshot } from '@/lib/market/types';
 
 type ThemePreference = 'auto' | 'light' | 'dark';
 type NavKey = 'analyze' | 'watchlist' | 'positions' | 'history' | 'settings';
@@ -29,6 +30,7 @@ export default function MarketApp() {
   const [symbol, setSymbol] = useState('BTCUSDT');
   const [query, setQuery] = useState('BTCUSDT');
   const [interval, setInterval] = useState<Interval>('1h');
+  const [strategyProfile, setStrategyProfile] = useState<StrategyProfileKey>('AUTO');
   const [snapshot, setSnapshot] = useState<MarketSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,6 +70,8 @@ export default function MarketApp() {
     const saved = (localStorage.getItem('marketscope-theme') as ThemePreference | null) || 'auto';
     setThemePref(saved);
     resolveTheme(saved);
+    const storedStrategy = localStorage.getItem('marketscope-strategy-profile') as StrategyProfileKey | null;
+    if (storedStrategy === 'AUTO' || storedStrategy === 'SHORT_TERM' || storedStrategy === 'SWING' || storedStrategy === 'MEDIUM_TERM' || storedStrategy === 'LONG_TERM') setStrategyProfile(storedStrategy);
 
     try {
       const savedRecent = JSON.parse(localStorage.getItem('marketscope-recent') || '{}') as Partial<Record<MarketType, string[]>>;
@@ -78,14 +82,14 @@ export default function MarketApp() {
 
     try {
       const stored = JSON.parse(localStorage.getItem('marketscope-positions') || '[]') as SavedPosition[];
-      setSavedPositions(Array.isArray(stored) ? stored.filter((item) => item && item.entryPrice > 0).map((item) => ({ ...item, quantity: item.quantity && item.quantity > 0 ? item.quantity : 1 })) : []);
+      setSavedPositions(Array.isArray(stored) ? stored.filter((item) => item && item.entryPrice > 0).map((item) => ({ ...item, quantity: item.quantity && item.quantity > 0 ? item.quantity : 1, strategyProfile: item.strategyProfile || 'SWING' })) : []);
     } catch {
       setSavedPositions([]);
     }
 
     try {
       const storedWatchlist = JSON.parse(localStorage.getItem('marketscope-watchlist') || '[]') as WatchlistItem[];
-      const safe = Array.isArray(storedWatchlist) ? storedWatchlist.filter((item) => item && item.symbol && item.market && item.interval).slice(0, 12) : [];
+      const safe = Array.isArray(storedWatchlist) ? storedWatchlist.filter((item) => item && item.symbol && item.market && item.interval).map((item) => ({ ...item, profile: item.profile || 'SWING' })).slice(0, 12) : [];
       setWatchlist(safe);
     } catch {
       setWatchlist([]);
@@ -130,14 +134,14 @@ export default function MarketApp() {
     });
   }, []);
 
-  const loadMarket = useCallback(async (targetMarket: MarketType, targetSymbol: string, targetInterval: Interval) => {
+  const loadMarket = useCallback(async (targetMarket: MarketType, targetSymbol: string, targetInterval: Interval, targetProfile: StrategyProfileKey = strategyProfile) => {
     const requestId = ++requestRef.current;
     setLoading(true);
     setError(null);
     setCorrelationId(null);
 
     try {
-      const params = new URLSearchParams({ market: targetMarket, symbol: targetSymbol, interval: targetInterval });
+      const params = new URLSearchParams({ market: targetMarket, symbol: targetSymbol, interval: targetInterval, profile: targetProfile });
       const response = await fetch(`/api/market/candles?${params.toString()}`, { cache: 'no-store' });
       const data = (await response.json()) as MarketSnapshot & ApiError;
       if (!response.ok) throw Object.assign(new Error(data.error || 'Không thể lấy dữ liệu'), { correlationId: data.correlationId });
@@ -156,7 +160,7 @@ export default function MarketApp() {
     } finally {
       if (requestId === requestRef.current) setLoading(false);
     }
-  }, [addRecent]);
+  }, [addRecent, strategyProfile]);
 
   useEffect(() => {
     void loadMarket(market, symbol, interval);
@@ -220,7 +224,7 @@ export default function MarketApp() {
   const positionAnalysis = useMemo<PositionExitAnalysis | null>(() => {
     if (!snapshot?.analysis || activeEntryPrice == null) return null;
     try {
-      return analyzePositionExit(snapshot.candles, market, interval, snapshot.analysis, snapshot.signal, activeEntryPrice);
+      return analyzePositionExit(snapshot.candles, market, interval, snapshot.analysis, snapshot.signal, activeEntryPrice, snapshot.strategy?.effective || 'SWING');
     } catch {
       return null;
     }
@@ -238,7 +242,7 @@ export default function MarketApp() {
       return;
     }
     const normalizedSymbol = snapshot?.symbol || symbol;
-    const saved: SavedPosition = { market, symbol: normalizedSymbol, entryPrice: parsed, quantity, interval, savedAt: new Date().toISOString() };
+    const saved: SavedPosition = { market, symbol: normalizedSymbol, entryPrice: parsed, quantity, interval, strategyProfile: snapshot?.strategy?.effective || 'SWING', savedAt: new Date().toISOString() };
     setActiveEntryPrice(parsed);
     setPositionInputError(null);
     setSavedPositions((prev) => {
@@ -269,6 +273,8 @@ export default function MarketApp() {
     setEntryDraft(String(item.entryPrice));
     setQuantityDraft(String(item.quantity || 1));
     setActiveEntryPrice(item.entryPrice);
+    setStrategyProfile(item.strategyProfile || 'SWING');
+    localStorage.setItem('marketscope-strategy-profile', item.strategyProfile || 'SWING');
     setNav('positions');
   };
 
@@ -285,10 +291,10 @@ export default function MarketApp() {
     }
   };
 
-  const addWatchlistItem = useCallback((targetMarket: MarketType, targetSymbol: string, targetInterval: Interval) => {
+  const addWatchlistItem = useCallback((targetMarket: MarketType, targetSymbol: string, targetInterval: Interval, targetProfile: StrategyProfileKey) => {
     const normalized = targetSymbol.trim().toUpperCase();
     if (!normalized) return;
-    const nextItem: WatchlistItem = { market: targetMarket, symbol: normalized, interval: targetInterval, addedAt: new Date().toISOString() };
+    const nextItem: WatchlistItem = { market: targetMarket, symbol: normalized, interval: targetInterval, profile: targetProfile, addedAt: new Date().toISOString() };
     setWatchlist((prev) => {
       const key = watchlistKey(nextItem);
       if (prev.some((item) => watchlistKey(item) === key)) return prev;
@@ -331,7 +337,7 @@ export default function MarketApp() {
         await Promise.all(batch.map(async (item) => {
           const key = watchlistKey(item);
           try {
-            const params = new URLSearchParams({ market: item.market, symbol: item.symbol, interval: item.interval });
+            const params = new URLSearchParams({ market: item.market, symbol: item.symbol, interval: item.interval, profile: item.profile });
             const response = await fetch(`/api/market/monitor?${params.toString()}`, { cache: 'no-store' });
             const data = await response.json() as WatchlistMonitorSnapshot & ApiError;
             if (!response.ok) throw new Error(data.error || 'Không thể cập nhật tín hiệu');
@@ -381,18 +387,20 @@ export default function MarketApp() {
     setSymbol(item.symbol);
     setQuery(item.symbol);
     setInterval(item.interval);
+    setStrategyProfile(item.profile);
+    localStorage.setItem('marketscope-strategy-profile', item.profile);
     setNav('analyze');
   };
 
   const toggleCurrentWatchlist = () => {
     if (!snapshot) return;
-    const item: WatchlistItem = { market, symbol: snapshot.symbol, interval, addedAt: new Date().toISOString() };
+    const item: WatchlistItem = { market, symbol: snapshot.symbol, interval, profile: strategyProfile, addedAt: new Date().toISOString() };
     const existing = watchlist.find((entry) => watchlistKey(entry) === watchlistKey(item));
     if (existing) removeWatchlistItem(existing);
-    else addWatchlistItem(market, snapshot.symbol, interval);
+    else addWatchlistItem(market, snapshot.symbol, interval, strategyProfile);
   };
 
-  const currentWatched = snapshot ? watchlist.some((item) => watchlistKey(item) === watchlistKey({ market, symbol: snapshot.symbol, interval })) : false;
+  const currentWatched = snapshot ? watchlist.some((item) => watchlistKey(item) === watchlistKey({ market, symbol: snapshot.symbol, interval, profile: strategyProfile })) : false;
 
   const priceDigits = useMemo(() => snapshot?.currency === 'VND' ? 0 : ((snapshot?.currentPrice || 0) >= 1000 ? 2 : 6), [snapshot]);
   const changePositive = (snapshot?.changePercent || 0) >= 0;
@@ -405,9 +413,9 @@ export default function MarketApp() {
           <div>
             <div className="brand-row">
               <strong>MarketScope</strong>
-              <span className="version-badge">V0.8.0</span>
+              <span className="version-badge">V0.9.0</span>
             </div>
-            <span className="brand-sub">Quality • Observability • Spot-only</span>
+            <span className="brand-sub">Strategy Profiles • Smart Analysis • Spot-only</span>
           </div>
         </div>
         <button className="theme-button" onClick={() => setNav('settings')} aria-label="Cài đặt giao diện">
@@ -449,6 +457,8 @@ export default function MarketApp() {
             inputError={positionInputError}
             positions={savedPositions}
             dark={dark}
+            strategyProfile={strategyProfile}
+            onStrategy={(next) => { setStrategyProfile(next); localStorage.setItem('marketscope-strategy-profile', next); }}
             onMarket={(nextMarket) => {
               const next = defaults[nextMarket];
               setMarket(nextMarket); setSymbol(next.symbol); setQuery(next.symbol); setInterval(next.interval); setSuggestOpen(false);
@@ -517,6 +527,13 @@ export default function MarketApp() {
                 ))}
               </div>
             </section>
+
+            <StrategyProfileSelector
+              value={strategyProfile}
+              strategy={snapshot?.strategy}
+              market={market}
+              onChange={(next) => { setStrategyProfile(next); localStorage.setItem('marketscope-strategy-profile', next); }}
+            />
 
             <section className="snapshot-card">
               {loading ? (
@@ -587,12 +604,12 @@ export default function MarketApp() {
             <section className="roadmap-card">
               <div className="roadmap-icon">↗</div>
               <div>
-                <strong>V0.8.0 • Quality & Observability</strong>
-                <p>Data Quality Guard kiểm tra freshness/integrity trước khi cho phép Entry/SL/TP; System Health & Diagnostics nằm trong Settings để Analyze vẫn gọn.</p>
+                <strong>V0.9.0 • Strategy Profiles & Smart Analysis</strong>
+                <p>AUTO / Ngắn hạn / Swing / Trung hạn / Dài hạn cùng điều khiển Entry, SL, TP, holding horizon và backtest; AUTO đề xuất profile theo regime, ADX, ATR và timeframe hiện tại.</p>
               </div>
             </section>
 
-            <p className="disclaimer">MarketScope V0.8.0 chỉ phân tích Spot/position LONG không leverage. Data Quality Guard có thể khóa tín hiệu khi dữ liệu stale/không đủ chất lượng; calibrated rate vẫn chỉ là thống kê lịch sử, không đảm bảo lợi nhuận tương lai.</p>
+            <p className="disclaimer">MarketScope V0.9.0 chỉ phân tích Spot/position LONG không leverage. Strategy Profile thay đổi rule/horizon nên calibrated rate chỉ so sánh trong cùng effective profile; Data Quality Guard vẫn có quyền khóa tín hiệu nếu dữ liệu không đạt chuẩn.</p>
           </>
         )}
       </section>
@@ -624,7 +641,7 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
   return (
     <section className="panel-page">
       <button className="back-button" onClick={onBack}>← Quay lại</button>
-      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.8.0 • Spot-only • Quality & Observability.</p></div>
+      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.9.0 • Strategy Profiles • Spot-only.</p></div>
       <div className="settings-card">
         <strong>Giao diện</strong>
         <p>Dark / Light / Auto được lưu trên thiết bị.</p>
@@ -644,11 +661,11 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
       </div>
       <div className="settings-card">
         <strong>Watchlist notifications</strong>
-        <p>Bật/tắt quyền thông báo tại module Watchlist. V0.8.0 chỉ kiểm tra khi Watchlist đang mở; push nền/cloud scheduler chưa bật mặc định.</p>
+        <p>Bật/tắt quyền thông báo tại module Watchlist. V0.9.0 chỉ kiểm tra khi Watchlist đang mở; push nền/cloud scheduler chưa bật mặc định.</p>
       </div>
       <div className="settings-card muted-card">
         <strong>Phiên bản</strong>
-        <p>MarketScope V0.8.0 — Quality & Observability.</p>
+        <p>MarketScope V0.9.0 — Strategy Profiles & Smart Analysis.</p>
       </div>
     </section>
   );

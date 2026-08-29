@@ -5,6 +5,7 @@ import { assessMarketSnapshot, applyDataQualityGuard } from '@/lib/market/qualit
 import { analyzeTechnical } from '@/lib/analysis/technical';
 import { analyzeTradeSignal } from '@/lib/analysis/signal';
 import { backtestSignalEngine } from '@/lib/analysis/backtest';
+import { normalizeStrategyProfile, resolveStrategyProfile } from '@/lib/analysis/strategy';
 import type { Interval, MarketType } from '@/lib/market/types';
 
 export const runtime = 'nodejs';
@@ -19,6 +20,7 @@ export async function GET(request: NextRequest) {
   const symbol = normalizeInputSymbol(market, rawSymbol);
   const requestedInterval = request.nextUrl.searchParams.get('interval') as Interval | null;
   const interval: Interval = requestedInterval && intervals.has(requestedInterval) ? requestedInterval : '1h';
+  const requestedProfile = normalizeStrategyProfile(request.nextUrl.searchParams.get('profile'));
   const correlationId = crypto.randomUUID();
   const startedAt = Date.now();
 
@@ -26,7 +28,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Vui lòng nhập mã tài sản', correlationId }, { status: 400 });
   }
   if (market === 'STOCK' && interval === '4h') {
-    return NextResponse.json({ error: 'Chứng khoán V0.8.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
+    return NextResponse.json({ error: 'Chứng khoán V0.9.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
   }
 
   try {
@@ -45,13 +47,14 @@ export async function GET(request: NextRequest) {
     }
 
     const analysis = analyzeTechnical(snapshot.candles, market);
-    const rawSignal = analyzeTradeSignal(snapshot.candles, market, analysis);
+    const strategy = resolveStrategyProfile(requestedProfile, market, interval, analysis);
+    const rawSignal = analyzeTradeSignal(snapshot.candles, market, analysis, strategy.effective);
     const signal = applyDataQualityGuard(rawSignal, quality);
     const backtest = quality.backtestAllowed
-      ? backtestSignalEngine(snapshot.candles, market, interval, signal, analysis.regime.key)
+      ? backtestSignalEngine(snapshot.candles, market, interval, signal, analysis.regime.key, strategy.effective)
       : undefined;
 
-    return NextResponse.json({ ...snapshot, quality, analysis, signal, backtest, correlationId, requestDurationMs: Date.now() - startedAt }, {
+    return NextResponse.json({ ...snapshot, quality, analysis, strategy, signal, backtest, correlationId, requestDurationMs: Date.now() - startedAt }, {
       headers: {
         'Cache-Control': market === 'CRYPTO' ? 's-maxage=10, stale-while-revalidate=20' : 's-maxage=30, stale-while-revalidate=60',
         'X-Correlation-Id': correlationId,

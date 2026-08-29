@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { effectiveProfileLabel } from './StrategyProfileSelector';
 import type { PortfolioRiskSnapshot, SavedPosition } from '@/lib/market/types';
 
 type Props = {
@@ -16,7 +17,7 @@ export default function PortfolioPanel({ positions, onOpen }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
-  const key = useMemo(() => positions.map((item) => `${item.market}:${item.symbol}:${item.interval}:${item.entryPrice}:${item.quantity || 1}`).join('|'), [positions]);
+  const key = useMemo(() => positions.map((item) => `${item.market}:${item.symbol}:${item.interval}:${item.strategyProfile || 'SWING'}:${item.entryPrice}:${item.quantity || 1}`).join('|'), [positions]);
 
   const refresh = useCallback(async () => {
     if (!positions.length) { setData(null); return; }
@@ -97,7 +98,7 @@ export default function PortfolioPanel({ positions, onOpen }: Props) {
                 const weight = bucket && bucket.currentValue > 0 ? item.currentValue / bucket.currentValue * 100 : 0;
                 return (
                   <button className="portfolio-position-row" key={`${item.market}-${item.symbol}`} onClick={() => saved && onOpen(saved)}>
-                    <div className="portfolio-symbol"><strong>{item.symbol}</strong><span>{item.market === 'STOCK' ? 'STOCK VN' : 'CRYPTO'} • {formatQuantity(item.quantity)}{item.dataQualityScore != null ? ` • Data ${item.dataQualityScore}/100` : ''}</span></div>
+                    <div className="portfolio-symbol"><strong>{item.symbol}</strong><span>{item.market === 'STOCK' ? 'STOCK VN' : 'CRYPTO'} • {effectiveProfileLabel(item.strategyProfile)} • {formatQuantity(item.quantity)}{item.dataQualityScore != null ? ` • Data ${item.dataQualityScore}/100` : ''}</span></div>
                     <div><span>Giá trị</span><strong>{formatMoney(item.currentValue, item.currency)}</strong></div>
                     <div className={item.pnlValue >= 0 ? 'gain-text' : 'loss-text'}><span>P/L</span><strong>{item.pnlPercent >= 0 ? '+' : ''}{item.pnlPercent.toFixed(2)}%</strong></div>
                     <div><span>Tỷ trọng</span><strong>{weight.toFixed(1)}%</strong></div>
