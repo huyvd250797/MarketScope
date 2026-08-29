@@ -3,6 +3,7 @@
 import MarketChart, { type ChartOverlays } from './MarketChart';
 import PositionPanel from './PositionPanel';
 import PortfolioPanel from './PortfolioPanel';
+import DataQualityPanel from './DataQualityPanel';
 import type { Interval, MarketSnapshot, MarketType, PositionExitAnalysis, SavedPosition } from '@/lib/market/types';
 
 type Props = {
@@ -99,6 +100,7 @@ export default function PositionsWorkspace(props: Props) {
             <div><strong>{snapshot.symbol}</strong><span>{snapshot.displayName}</span></div>
             <div><strong>{formatPrice(snapshot.currentPrice, digits, snapshot.currency)}</strong><span className={(snapshot.changePercent || 0) >= 0 ? 'gain-text' : 'loss-text'}>{snapshot.changePercent == null ? '-' : `${snapshot.changePercent >= 0 ? '+' : ''}${snapshot.changePercent.toFixed(2)}%`}</span></div>
           </div>
+          {snapshot.quality && <DataQualityPanel quality={snapshot.quality} provider={snapshot.providerDiagnostics} compact />}
 
           <PositionPanel
             snapshot={snapshot}
@@ -121,11 +123,13 @@ export default function PositionsWorkspace(props: Props) {
         </>
       ) : null}
 
+      {!loading && !error && snapshot?.quality && !snapshot.analysis && <DataQualityPanel quality={snapshot.quality} provider={snapshot.providerDiagnostics} />}
+
       {positions.length === 0 && !analysis && !loading && (
         <div className="positions-empty compact-empty"><span>◎</span><strong>Chưa có vị thế đã lưu</strong><p>Chọn mã, nhập giá đã mua và bấm “Phân tích vị thế”. Vị thế sẽ được lưu cục bộ trên thiết bị.</p></div>
       )}
 
-      <div className="settings-card muted-card"><strong>Phạm vi Positions V0.7.0</strong><p>Portfolio & Risk Management được đặt trong Positions để Analyze không bị quá tải. Giá vốn + số lượng lưu localStorage; API portfolio chỉ dùng tạm để tính toán và không lưu dữ liệu vị thế.</p></div>
+      <div className="settings-card muted-card"><strong>Phạm vi Positions V0.8.0</strong><p>Portfolio & Risk Management tiếp tục nằm trong Positions. V0.8.0 bổ sung Data Quality theo từng mã; nếu dữ liệu stale/degraded cần kiểm tra provider trước khi dựa vào kế hoạch thoát. Giá vốn + số lượng vẫn chỉ lưu localStorage.</p></div>
     </section>
   );
 }

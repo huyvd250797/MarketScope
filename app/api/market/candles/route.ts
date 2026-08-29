@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getMarketSnapshot } from '@/lib/market/provider';
 import { normalizeInputSymbol } from '@/lib/market/symbols';
+import { assessMarketSnapshot, applyDataQualityGuard } from '@/lib/market/quality';
 import { analyzeTechnical } from '@/lib/analysis/technical';
 import { analyzeTradeSignal } from '@/lib/analysis/signal';
 import { backtestSignalEngine } from '@/lib/analysis/backtest';
@@ -19,28 +20,47 @@ export async function GET(request: NextRequest) {
   const requestedInterval = request.nextUrl.searchParams.get('interval') as Interval | null;
   const interval: Interval = requestedInterval && intervals.has(requestedInterval) ? requestedInterval : '1h';
   const correlationId = crypto.randomUUID();
+  const startedAt = Date.now();
 
   if (!symbol) {
     return NextResponse.json({ error: 'Vui lòng nhập mã tài sản', correlationId }, { status: 400 });
   }
   if (market === 'STOCK' && interval === '4h') {
-    return NextResponse.json({ error: 'Chứng khoán V0.7.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
+    return NextResponse.json({ error: 'Chứng khoán V0.8.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
   }
 
   try {
     const snapshot = await getMarketSnapshot(market, symbol, interval);
+    const quality = assessMarketSnapshot(snapshot);
+    snapshot.quality = quality;
+
+    if (!quality.analysisAllowed) {
+      return NextResponse.json({ ...snapshot, correlationId, requestDurationMs: Date.now() - startedAt }, {
+        headers: {
+          'Cache-Control': 'no-store',
+          'X-Correlation-Id': correlationId,
+          'X-Data-Quality': quality.status,
+        },
+      });
+    }
+
     const analysis = analyzeTechnical(snapshot.candles, market);
-    const signal = analyzeTradeSignal(snapshot.candles, market, analysis);
-    const backtest = backtestSignalEngine(snapshot.candles, market, interval, signal, analysis.regime.key);
-    return NextResponse.json({ ...snapshot, analysis, signal, backtest, correlationId }, {
+    const rawSignal = analyzeTradeSignal(snapshot.candles, market, analysis);
+    const signal = applyDataQualityGuard(rawSignal, quality);
+    const backtest = quality.backtestAllowed
+      ? backtestSignalEngine(snapshot.candles, market, interval, signal, analysis.regime.key)
+      : undefined;
+
+    return NextResponse.json({ ...snapshot, quality, analysis, signal, backtest, correlationId, requestDurationMs: Date.now() - startedAt }, {
       headers: {
         'Cache-Control': market === 'CRYPTO' ? 's-maxage=10, stale-while-revalidate=20' : 's-maxage=30, stale-while-revalidate=60',
         'X-Correlation-Id': correlationId,
+        'X-Data-Quality': quality.status,
       },
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Không thể lấy dữ liệu thị trường';
-    console.error('[market/candles]', { correlationId, market, symbol, interval, message });
-    return NextResponse.json({ error: message, correlationId }, { status: 502, headers: { 'X-Correlation-Id': correlationId } });
+    console.error('[market/candles]', { correlationId, market, symbol, interval, durationMs: Date.now() - startedAt, message });
+    return NextResponse.json({ error: message, correlationId }, { status: 502, headers: { 'Cache-Control': 'no-store', 'X-Correlation-Id': correlationId } });
   }
 }

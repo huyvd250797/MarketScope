@@ -103,3 +103,10 @@ export class BinanceProvider implements MarketProvider {
     };
   }
 }
+
+export async function probeBinanceHealth() {
+  const startedAt = Date.now();
+  const data = await fetchJson<{ serverTime?: number }>('/api/v3/time');
+  if (!Number.isFinite(Number(data.serverTime))) throw new Error('Binance health response không có serverTime hợp lệ');
+  return { latencyMs: Math.max(0, Date.now() - startedAt), message: 'Binance public REST phản hồi bình thường.' };
+}

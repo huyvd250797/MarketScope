@@ -1,21 +1,17 @@
-# Deploy trực tiếp lên Vercel
+# Deploy MarketScope V0.8.0 lên Vercel
 
-## Cách nhanh nhất
-
-### 1. Đưa source lên GitHub
-
-Trong thư mục source:
+## 1. Push source lên GitHub
 
 ```bash
 git init
 git add .
-git commit -m "MarketScope V0.7.0"
+git commit -m "MarketScope V0.8.0"
 git branch -M main
 git remote add origin <GITHUB_REPO_URL>
 git push -u origin main
 ```
 
-### 2. Tạo Project trên Vercel
+## 2. Tạo Project trên Vercel
 
 - Vercel → Add New → Project.
 - Import GitHub repository.
@@ -26,11 +22,11 @@ git push -u origin main
 - **Output Directory: để trống. Không nhập `out`.**
 - Deploy.
 
-### 3. Stock VN
+## 3. Environment Variables cho Stock VN
 
-Không cấu hình gì: app dùng fallback để xem trước.
+Không cấu hình SSI: `AUTO` sẽ dùng Yahoo fallback nếu `ALLOW_STOCK_FALLBACK=true`.
 
-Muốn dùng provider chính SSI FastConnect:
+Production nên cấu hình SSI:
 
 ```text
 STOCK_PROVIDER=AUTO
@@ -40,24 +36,25 @@ SSI_API_KEY=<SSI api key>
 SSI_API_SECRET=<SSI api secret>
 ```
 
-Vào Vercel → Project → Settings → Environment Variables, thêm các biến trên cho Production/Preview rồi Redeploy.
+Optional health probe symbol:
 
-### 4. Kiểm tra sau deploy
+```text
+HEALTH_STOCK_SYMBOL=FPT
+```
 
-- Mở mobile Safari/Chrome.
-- CRYPTO → BTCUSDT → 1h: phải có giá, chart, Market Regime, Trade Setup, Position / Exit Planner và Backtest / Calibration.
-- Kiểm tra EMA20/50/200, RSI14, MACD, ADX14, ATR14, VWAP có giá trị.
-- Kiểm tra BUY / WAIT / AVOID, Signal Score và Entry/SL/TP khi có setup.
-- Kiểm tra Backtest: Filled/Win/Loss/Timeout, Win rate, Calibrated rate, Expectancy, Profit Factor và Validation window.
-- Nếu current signal là WAIT/AVOID, calibration phải hiển thị không áp dụng probability cho lệnh hiện tại.
-- Nhập giá vốn BTCUSDT → Phân tích vị thế → kiểm tra P/L, Protect/Stop, target ngắn/trung/dài.
-- Mở tab Positions → phải thấy BTCUSDT đã lưu; quay lại Analyze phải khôi phục giá vốn.
-- Bật/tắt EMA20 / EMA50 / EMA200 / VWAP / ENTRY-SL-TP / POSITION trên chart.
-- Đổi ETHUSDT/SOLUSDT.
-- STOCK VN → FPT → 1D: phải có chart hoặc thông báo rõ lỗi provider.
-- Chuyển Dark/Light/Auto.
-- Không có lỗi `routes-manifest.json` / `out not found` vì project không cấu hình static export.
+Không commit `.env.local`.
 
-## Security
+## 4. Checklist sau deploy
 
-Không commit `.env.local`; file này đã nằm trong `.gitignore`.
+1. Analyze → Crypto → BTCUSDT → 1h.
+2. Kiểm tra Data Quality strip phải hiện score/freshness/provider trace.
+3. Bấm mở Data Quality để xem candle integrity và latency.
+4. Entry/SL/TP chỉ được hiện khi `signalAllowed=true`.
+5. Watchlist phải không phát signal alert nếu quality đang block.
+6. Positions phải hiển thị Data Quality của mã đang phân tích.
+7. Portfolio phải tiếp tục tách VND với USD/USDT.
+8. Settings → **System Health & Diagnostics** → `Kiểm tra lại`.
+9. Xác nhận Binance, Stock provider đang chọn và 3 analysis engines.
+10. Nếu Stock dùng Yahoo fallback, overall có thể là `DEGRADED` — đây là chủ đích của V0.8.0.
+11. Nếu có lỗi API, ghi lại `correlationId` hiển thị trên UI/log.
+12. Không cấu hình `out`; project này là Next.js server app.

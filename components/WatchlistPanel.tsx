@@ -115,7 +115,7 @@ export default function WatchlistPanel({ items, states, refreshing, lastRefresh,
 
       <div className="watch-note">
         <span>i</span>
-        <p>V0.7.0 là monitoring khi app đang mở, chưa phải push notification nền. Calibrated rate chỉ hiện khi backtest đủ điều kiện và không phải cam kết xác suất thắng tương lai.</p>
+        <p>V0.8.0 là monitoring khi app đang mở, chưa phải push notification nền. Calibrated rate chỉ hiện khi backtest đủ điều kiện và không phải cam kết xác suất thắng tương lai.</p>
       </div>
     </section>
   );
@@ -165,7 +165,7 @@ function WatchCard({ item, state, onOpen, onRemove }: { item: WatchlistItem; sta
             {data.signal.targets[0] && <span>TP1 {formatPrice(data.signal.targets[0].price, digits, data.currency)}</span>}
           </div>
         )}
-        <div className="watch-card-foot"><span>{data.signal.setupLabel}</span><span>{formatDateTime(data.dataAt)}</span></div>
+        <div className="watch-card-foot"><span>{data.signal.setupLabel}</span><span className={`watch-quality ${data.quality.status.toLowerCase()}`}>Data {data.quality.score}/100</span><span>{formatDateTime(data.dataAt)}</span></div>
       </button>
       <button className="watch-remove" onClick={onRemove} aria-label={`Xóa ${item.symbol}`}>×</button>
     </article>
@@ -183,6 +183,8 @@ function Mini({ label, value }: { label: string; value: string }) {
 
 function deriveActiveAlerts(data: WatchlistMonitorSnapshot) {
   const alerts: Array<{ label: string; tone: 'buy' | 'wait' | 'avoid' | 'brand' }> = [];
+  if (data.quality.status !== 'HEALTHY') alerts.push({ label: data.quality.status === 'STALE_DATA' ? '⚠ DATA STALE' : `Data ${data.quality.score}/100`, tone: data.quality.signalAllowed ? 'wait' : 'avoid' });
+  if (!data.quality.signalAllowed) return alerts.slice(0, 3);
   const price = data.currentPrice;
   if (data.signal.decision === 'BUY' && data.signal.stopLoss && price <= data.signal.stopLoss.price) alerts.push({ label: '⚠ Đã chạm SL', tone: 'avoid' });
   const reached = data.signal.decision === 'BUY' ? [...data.signal.targets].reverse().find((target) => price >= target.price) : undefined;
@@ -193,6 +195,7 @@ function deriveActiveAlerts(data: WatchlistMonitorSnapshot) {
 }
 
 function opportunityLabel(data: WatchlistMonitorSnapshot) {
+  if (!data.quality.signalAllowed) return 'Data check';
   if (data.signal.decision === 'AVOID') return 'Tránh';
   if (data.signal.decision === 'WAIT') return 'Chờ setup';
   const rate = data.calibration.calibratedWinRate || 0;

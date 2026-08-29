@@ -53,20 +53,29 @@ function yahooCandidates(symbol: string): string[] {
 }
 
 async function fetchYahoo(symbol: string, interval: string, range: string): Promise<YahooResult> {
-  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(range)}&events=div%2Csplits`;
-  const response = await fetch(url, {
-    signal: AbortSignal.timeout(9000),
-    next: { revalidate: 30 },
-    headers: {
-      Accept: 'application/json',
-      'User-Agent': 'Mozilla/5.0 (compatible; MarketScope/0.5.0)',
-    },
-  });
-  if (!response.ok) throw new Error(`Yahoo HTTP ${response.status}`);
-  const data = (await response.json()) as YahooResponse;
-  const result = data.chart?.result?.[0];
-  if (!result) throw new Error(data.chart?.error?.description || `Không có dữ liệu ${symbol}`);
-  return result;
+  const hosts = ['query1.finance.yahoo.com', 'query2.finance.yahoo.com'];
+  let lastError: unknown;
+  for (const host of hosts) {
+    try {
+      const url = `https://${host}/v8/finance/chart/${encodeURIComponent(symbol)}?interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(range)}&events=div%2Csplits`;
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(8000),
+        next: { revalidate: 30 },
+        headers: {
+          Accept: 'application/json',
+          'User-Agent': 'Mozilla/5.0 (compatible; MarketScope/0.8.0)',
+        },
+      });
+      if (!response.ok) throw new Error(`Yahoo HTTP ${response.status}`);
+      const data = (await response.json()) as YahooResponse;
+      const result = data.chart?.result?.[0];
+      if (!result) throw new Error(data.chart?.error?.description || `Không có dữ liệu ${symbol}`);
+      return result;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error(`Không thể kết nối Yahoo Finance cho ${symbol}`);
 }
 
 export function parseYahooResult(result: YahooResult): Candle[] {
@@ -99,7 +108,7 @@ export class YahooVietnamStockProvider implements MarketProvider {
 
   async getSnapshot(symbol: string, interval: Interval): Promise<MarketSnapshot> {
     if (interval === '4h') {
-      throw new Error('Chứng khoán V0.7.0 chưa hỗ trợ timeframe 4h');
+      throw new Error('Chứng khoán V0.8.0 chưa hỗ trợ timeframe 4h');
     }
     const cfg = intervalMap[interval];
     let result: YahooResult | undefined;
@@ -157,4 +166,12 @@ export class YahooVietnamStockProvider implements MarketProvider {
       warning: 'Nguồn fallback không chính thức. Nên cấu hình SSI FastConnect cho dữ liệu chứng khoán Việt Nam.',
     };
   }
+}
+
+export async function probeYahooHealth() {
+  const startedAt = Date.now();
+  const result = await fetchYahoo('FPT.VN', '1d', '5d');
+  const candles = parseYahooResult(result);
+  if (!candles.length) throw new Error('Yahoo health probe không trả OHLCV');
+  return { latencyMs: Math.max(0, Date.now() - startedAt), message: 'Yahoo Finance fallback đang phản hồi dữ liệu Stock VN.' };
 }

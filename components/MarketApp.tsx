@@ -7,6 +7,8 @@ import SignalPanel from './SignalPanel';
 import PositionsWorkspace from './PositionsWorkspace';
 import WatchlistPanel, { watchlistKey, type WatchlistItem, type WatchlistState } from './WatchlistPanel';
 import BacktestPanel from './BacktestPanel';
+import DataQualityPanel from './DataQualityPanel';
+import SystemHealthPanel from './SystemHealthPanel';
 import { analyzePositionExit } from '@/lib/analysis/position';
 import type { Interval, MarketSnapshot, MarketType, PositionExitAnalysis, SavedPosition, SymbolItem, WatchlistMonitorSnapshot } from '@/lib/market/types';
 
@@ -403,9 +405,9 @@ export default function MarketApp() {
           <div>
             <div className="brand-row">
               <strong>MarketScope</strong>
-              <span className="version-badge">V0.7.0</span>
+              <span className="version-badge">V0.8.0</span>
             </div>
-            <span className="brand-sub">Portfolio • Spot Risk Management</span>
+            <span className="brand-sub">Quality • Observability • Spot-only</span>
           </div>
         </div>
         <button className="theme-button" onClick={() => setNav('settings')} aria-label="Cài đặt giao diện">
@@ -557,6 +559,7 @@ export default function MarketApp() {
               ) : null}
             </section>
 
+            {!loading && snapshot?.quality && <DataQualityPanel quality={snapshot.quality} provider={snapshot.providerDiagnostics} compact />}
             {!loading && snapshot?.signal && <SignalPanel signal={snapshot.signal} snapshot={snapshot} />}
             {!loading && snapshot?.backtest && <BacktestPanel backtest={snapshot.backtest} snapshot={snapshot} />}
             {!loading && snapshot?.analysis && <TechnicalAnalysisPanel analysis={snapshot.analysis} snapshot={snapshot} />}
@@ -584,12 +587,12 @@ export default function MarketApp() {
             <section className="roadmap-card">
               <div className="roadmap-icon">↗</div>
               <div>
-                <strong>V0.7.0 • Spot-only Portfolio</strong>
-                <p>Futures đã được loại khỏi roadmap. Portfolio & Risk Management nằm trong Positions; Analyze tiếp tục chỉ tập trung vào quyết định vào lệnh.</p>
+                <strong>V0.8.0 • Quality & Observability</strong>
+                <p>Data Quality Guard kiểm tra freshness/integrity trước khi cho phép Entry/SL/TP; System Health & Diagnostics nằm trong Settings để Analyze vẫn gọn.</p>
               </div>
             </section>
 
-            <p className="disclaimer">MarketScope V0.7.0 chỉ phân tích Spot/position LONG không leverage; Portfolio Risk được tách theo từng đồng tiền. Calibrated rate là thống kê lịch sử, không phải xác suất chắc chắn và không đảm bảo lợi nhuận tương lai.</p>
+            <p className="disclaimer">MarketScope V0.8.0 chỉ phân tích Spot/position LONG không leverage. Data Quality Guard có thể khóa tín hiệu khi dữ liệu stale/không đủ chất lượng; calibrated rate vẫn chỉ là thống kê lịch sử, không đảm bảo lợi nhuận tương lai.</p>
           </>
         )}
       </section>
@@ -621,7 +624,7 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
   return (
     <section className="panel-page">
       <button className="back-button" onClick={onBack}>← Quay lại</button>
-      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.7.0 • Spot-only.</p></div>
+      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.8.0 • Spot-only • Quality & Observability.</p></div>
       <div className="settings-card">
         <strong>Giao diện</strong>
         <p>Dark / Light / Auto được lưu trên thiết bị.</p>
@@ -633,6 +636,7 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
           ))}
         </div>
       </div>
+      <SystemHealthPanel />
       <div className="settings-card">
         <strong>Market data providers</strong>
         <p><b>Crypto:</b> Binance public market data — không cần API key.</p>
@@ -640,11 +644,11 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
       </div>
       <div className="settings-card">
         <strong>Watchlist notifications</strong>
-        <p>Bật/tắt quyền thông báo tại module Watchlist. V0.7.0 chỉ kiểm tra khi Watchlist đang mở; push nền/cloud scheduler chưa bật mặc định.</p>
+        <p>Bật/tắt quyền thông báo tại module Watchlist. V0.8.0 chỉ kiểm tra khi Watchlist đang mở; push nền/cloud scheduler chưa bật mặc định.</p>
       </div>
       <div className="settings-card muted-card">
         <strong>Phiên bản</strong>
-        <p>MarketScope V0.7.0 — Watchlist & Signal Monitoring.</p>
+        <p>MarketScope V0.8.0 — Quality & Observability.</p>
       </div>
     </section>
   );
@@ -701,6 +705,7 @@ async function maybeShowWatchNotification(item: WatchlistItem, data: WatchlistMo
 }
 
 function resolveWatchAlert(data: WatchlistMonitorSnapshot) {
+  if (!data.quality?.signalAllowed) return null;
   const price = data.currentPrice;
   if (data.signal.decision === 'BUY' && data.signal.stopLoss && price <= data.signal.stopLoss.price) {
     return { signature: `SL:${data.signal.stopLoss.price}`, body: `Giá ${data.symbol} đã chạm/phá mốc SL ${data.signal.stopLoss.price}.` };

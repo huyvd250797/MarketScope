@@ -66,7 +66,7 @@ export class SsiFastConnectProvider implements MarketProvider {
   }
 
   async getSnapshot(symbol: string, interval: Interval): Promise<MarketSnapshot> {
-    if (interval === '4h') throw new Error('SSI FastConnect không có nến 4h trực tiếp trong V0.7.0');
+    if (interval === '4h') throw new Error('SSI FastConnect không có nến 4h trực tiếp trong V0.8.0');
 
     const { Auth, Data } = await import('@ssi.developer/ssi-sdk');
     const credentials = this.credentials();
@@ -133,4 +133,12 @@ export class SsiFastConnectProvider implements MarketProvider {
       candles,
     };
   }
+}
+
+export async function probeSsiHealth() {
+  const startedAt = Date.now();
+  const provider = new SsiFastConnectProvider();
+  const snapshot = await provider.getSnapshot(process.env.HEALTH_STOCK_SYMBOL?.trim() || 'FPT', '1d');
+  if (!snapshot.candles.length) throw new Error('SSI health probe không trả OHLCV');
+  return { latencyMs: Math.max(0, Date.now() - startedAt), message: 'SSI FastConnect xác thực và market data phản hồi bình thường.' };
 }
