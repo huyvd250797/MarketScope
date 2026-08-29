@@ -1,7 +1,7 @@
 {
   "name": "MarketScope",
   "short_name": "MarketScope",
-  "description": "Crypto Spot & Vietnam Stock analysis with Entry/SL/TP, Watchlist Signal Monitoring, Position Exit, Backtest and Calibration",
+  "description": "Crypto Spot & Vietnam Stock analysis with Portfolio Risk Management, Entry/SL/TP, Watchlist, Position Exit, Backtest and Calibration",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#071018",

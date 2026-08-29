@@ -2,6 +2,7 @@
 
 import MarketChart, { type ChartOverlays } from './MarketChart';
 import PositionPanel from './PositionPanel';
+import PortfolioPanel from './PortfolioPanel';
 import type { Interval, MarketSnapshot, MarketType, PositionExitAnalysis, SavedPosition } from '@/lib/market/types';
 
 type Props = {
@@ -14,6 +15,7 @@ type Props = {
   error: string | null;
   correlationId: string | null;
   entryDraft: string;
+  quantityDraft: string;
   analysis: PositionExitAnalysis | null;
   inputError: string | null;
   positions: SavedPosition[];
@@ -23,6 +25,7 @@ type Props = {
   onSubmit: () => void;
   onInterval: (interval: Interval) => void;
   onEntryDraft: (value: string) => void;
+  onQuantityDraft: (value: string) => void;
   onAnalyze: () => void;
   onClear: () => void;
   onOpen: (item: SavedPosition) => void;
@@ -34,7 +37,7 @@ type Props = {
 const positionOverlays: ChartOverlays = { ema20: true, ema50: true, ema200: false, vwap: true, signals: false, position: true };
 
 export default function PositionsWorkspace(props: Props) {
-  const { market, query, interval, availableIntervals, snapshot, loading, error, correlationId, entryDraft, analysis, inputError, positions, dark } = props;
+  const { market, query, interval, availableIntervals, snapshot, loading, error, correlationId, entryDraft, quantityDraft, analysis, inputError, positions, dark } = props;
   const digits = snapshot?.currency === 'VND' ? 0 : (snapshot?.currentPrice || 0) >= 1000 ? 2 : 6;
 
   return (
@@ -45,6 +48,8 @@ export default function PositionsWorkspace(props: Props) {
         <p>Toàn bộ phân tích vị thế đã mua, P/L, bảo vệ vốn và kế hoạch thoát được tập trung tại đây.</p>
       </div>
 
+      {positions.length > 0 && <PortfolioPanel positions={positions} onOpen={props.onOpen} />}
+
       {positions.length > 0 && (
         <div className="position-saved-section">
           <div className="workspace-section-title"><strong>Vị thế đã lưu</strong><span>{positions.length}/30</span></div>
@@ -54,7 +59,7 @@ export default function PositionsWorkspace(props: Props) {
                 <button className="saved-position-main" onClick={() => props.onOpen(item)}>
                   <span className="saved-position-market">{item.market === 'CRYPTO' ? 'CRYPTO' : 'STOCK VN'}</span>
                   <strong>{item.symbol}</strong>
-                  <small>Giá vốn: {formatPositionPrice(item)} • {formatInterval(item.interval)}</small>
+                  <small>Giá vốn: {formatPositionPrice(item)} • Số lượng: {formatQuantity(item.quantity || 1)} • {formatInterval(item.interval)}</small>
                 </button>
                 <button className="saved-position-delete" aria-label={`Xóa vị thế ${item.symbol}`} onClick={() => props.onDelete(item)}>×</button>
               </article>
@@ -98,8 +103,10 @@ export default function PositionsWorkspace(props: Props) {
           <PositionPanel
             snapshot={snapshot}
             entryDraft={entryDraft}
+            quantityDraft={quantityDraft}
             analysis={analysis}
             onEntryDraft={props.onEntryDraft}
+            onQuantityDraft={props.onQuantityDraft}
             onAnalyze={props.onAnalyze}
             onClear={props.onClear}
           />
@@ -118,7 +125,7 @@ export default function PositionsWorkspace(props: Props) {
         <div className="positions-empty compact-empty"><span>◎</span><strong>Chưa có vị thế đã lưu</strong><p>Chọn mã, nhập giá đã mua và bấm “Phân tích vị thế”. Vị thế sẽ được lưu cục bộ trên thiết bị.</p></div>
       )}
 
-      <div className="settings-card muted-card"><strong>Phạm vi Positions V0.6.0</strong><p>Position / Exit Planner đã được chuyển khỏi Analyze để dashboard gọn hơn. Dữ liệu giá vốn tiếp tục lưu bằng localStorage; không tự đặt lệnh và không gửi vị thế sang bên thứ ba.</p></div>
+      <div className="settings-card muted-card"><strong>Phạm vi Positions V0.7.0</strong><p>Portfolio & Risk Management được đặt trong Positions để Analyze không bị quá tải. Giá vốn + số lượng lưu localStorage; API portfolio chỉ dùng tạm để tính toán và không lưu dữ liệu vị thế.</p></div>
     </section>
   );
 }
@@ -134,3 +141,5 @@ function formatPrice(value: number, digits: number, currency: string) {
 function formatInterval(value: Interval) {
   return value === '1d' ? '1D' : value === '1w' ? '1W' : value;
 }
+
+function formatQuantity(value: number) { return new Intl.NumberFormat('en-US', { maximumFractionDigits: 8 }).format(value); }

@@ -115,7 +115,7 @@ export default function WatchlistPanel({ items, states, refreshing, lastRefresh,
 
       <div className="watch-note">
         <span>i</span>
-        <p>V0.6.0 là monitoring khi app đang mở, chưa phải push notification nền. Calibrated rate chỉ hiện khi backtest đủ điều kiện và không phải cam kết xác suất thắng tương lai.</p>
+        <p>V0.7.0 là monitoring khi app đang mở, chưa phải push notification nền. Calibrated rate chỉ hiện khi backtest đủ điều kiện và không phải cam kết xác suất thắng tương lai.</p>
       </div>
     </section>
   );

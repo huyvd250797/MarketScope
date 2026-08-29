@@ -9,7 +9,7 @@ Trong thư mục source:
 ```bash
 git init
 git add .
-git commit -m "MarketScope V0.6.0"
+git commit -m "MarketScope V0.7.0"
 git branch -M main
 git remote add origin <GITHUB_REPO_URL>
 git push -u origin main
