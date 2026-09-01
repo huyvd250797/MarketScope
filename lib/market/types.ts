@@ -274,6 +274,7 @@ export type MarketSnapshot = {
   providerDiagnostics?: ProviderDiagnostics;
   strategy?: StrategyProfileAnalysis;
   forecast?: PriceForecast;
+  forecastValidation?: ForecastValidationResult;
   fallbackUsed?: boolean;
   warning?: string;
 };
@@ -289,17 +290,35 @@ export type ForecastHorizon = 'SHORT' | 'MEDIUM' | 'LONG';
 
 export type PriceForecast = {
   generatedAt: string;
+  originTime: number;
+  originPrice: number;
   methodology: string;
   confidence: number;
+  rawConfidence?: number;
+  calibratedConfidence?: number;
+  calibration?: {
+    quality: ForecastValidationConfidence;
+    qualityLabel: string;
+    samples: number;
+    historicalDirectionAccuracy: number | null;
+    rangeHitRate: number | null;
+  };
   overallBias: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
   overallLabel: string;
   scenarios: Array<{
     horizon: ForecastHorizon;
     label: string;
     timeGuide: string;
+    evaluationBars: number;
     direction: 'UP' | 'DOWN' | 'SIDEWAYS';
     directionLabel: string;
     probability: number;
+    rawProbability?: number;
+    calibratedProbability?: number;
+    historicalSamples?: number;
+    historicalDirectionAccuracy?: number | null;
+    historicalRangeHitRate?: number | null;
+    historicalAvgErrorPercent?: number | null;
     expectedPrice: number;
     expectedChangePercent: number;
     rangeLow: number;
@@ -308,6 +327,101 @@ export type PriceForecast = {
     drivers: string[];
   }>;
   disclaimer: string;
+};
+
+export type ForecastValidationConfidence = 'INSUFFICIENT' | 'LOW' | 'MEDIUM' | 'HIGH';
+
+export type ForecastValidationSample = {
+  originTime: number;
+  targetTime: number;
+  horizon: ForecastHorizon;
+  predictedDirection: 'UP' | 'DOWN' | 'SIDEWAYS';
+  actualDirection: 'UP' | 'DOWN' | 'SIDEWAYS';
+  directionCorrect: boolean;
+  predictedPrice: number;
+  actualPrice: number;
+  rangeLow: number;
+  rangeHigh: number;
+  rangeHit: boolean;
+  absoluteErrorPercent: number;
+  rawProbability: number;
+  profile: EffectiveStrategyProfile;
+  regime: TechnicalAnalysis['regime']['key'];
+};
+
+export type ForecastValidationMetrics = {
+  samples: number;
+  directionCorrect: number;
+  directionAccuracy: number | null;
+  calibratedDirectionAccuracy: number | null;
+  rangeHits: number;
+  rangeHitRate: number | null;
+  avgAbsoluteErrorPercent: number | null;
+  medianAbsoluteErrorPercent: number | null;
+  avgRawProbability: number | null;
+  calibrationGap: number | null;
+};
+
+export type ForecastValidationResult = {
+  generatedAt: string;
+  status: 'READY' | 'LIMITED' | 'INSUFFICIENT_HISTORY';
+  sampleOrigins: number;
+  evaluatedScenarios: number;
+  strategyProfile: EffectiveStrategyProfile;
+  horizons: Record<ForecastHorizon, ForecastValidationMetrics>;
+  overall: {
+    directionAccuracy: number | null;
+    calibratedDirectionAccuracy: number | null;
+    rangeHitRate: number | null;
+    avgAbsoluteErrorPercent: number | null;
+    avgRawProbability: number | null;
+    calibrationGap: number | null;
+  };
+  confidenceQuality: ForecastValidationConfidence;
+  confidenceQualityLabel: string;
+  recentSamples: ForecastValidationSample[];
+  methodology: string[];
+  disclaimer: string;
+};
+
+export type ForecastHistoryScenario = {
+  horizon: ForecastHorizon;
+  label: string;
+  timeGuide: string;
+  evaluationBars: number;
+  predictedDirection: 'UP' | 'DOWN' | 'SIDEWAYS';
+  directionLabel: string;
+  rawProbability: number;
+  calibratedProbability: number;
+  expectedPrice: number;
+  rangeLow: number;
+  rangeHigh: number;
+  status: 'PENDING' | 'RESOLVED';
+  targetTime?: number;
+  actualPrice?: number;
+  actualDirection?: 'UP' | 'DOWN' | 'SIDEWAYS';
+  directionCorrect?: boolean;
+  rangeHit?: boolean;
+  absoluteErrorPercent?: number;
+};
+
+export type ForecastHistoryRecord = {
+  id: string;
+  market: MarketType;
+  symbol: string;
+  displayName: string;
+  interval: Interval;
+  strategyProfile: EffectiveStrategyProfile;
+  strategyLabel: string;
+  provider: string;
+  generatedAt: string;
+  originTime: number;
+  originPrice: number;
+  rawConfidence: number;
+  calibratedConfidence: number;
+  overallBias: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  overallLabel: string;
+  scenarios: ForecastHistoryScenario[];
 };
 
 export type DataHealthStatus = 'HEALTHY' | 'DEGRADED' | 'STALE_DATA' | 'INVALID_DATA' | 'PROVIDER_ERROR';

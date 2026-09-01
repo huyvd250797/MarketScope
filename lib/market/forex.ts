@@ -16,7 +16,7 @@ async function fetchChart(providerSymbol: string, interval: string, range: strin
   for (const host of ['query1.finance.yahoo.com', 'query2.finance.yahoo.com']) {
     try {
       const url = `https://${host}/v8/finance/chart/${encodeURIComponent(providerSymbol)}?interval=${encodeURIComponent(interval)}&range=${encodeURIComponent(range)}`;
-      const response = await fetch(url, { signal: AbortSignal.timeout(8000), next: { revalidate: 30 }, headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; MarketScope/0.10.0)' } });
+      const response = await fetch(url, { signal: AbortSignal.timeout(8000), next: { revalidate: 30 }, headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0 (compatible; MarketScope/0.11.0)' } });
       if (!response.ok) throw new Error(`Forex provider HTTP ${response.status}`);
       const data = await response.json() as any;
       const result = data.chart?.result?.[0];

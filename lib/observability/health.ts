@@ -131,7 +131,7 @@ export async function getSystemHealth(): Promise<SystemHealthSnapshot> {
 
   return {
     generatedAt: new Date().toISOString(),
-    version: '0.10.0',
+    version: '0.11.0',
     overall,
     overallLabel: overall === 'HEALTHY' ? 'Hệ thống ổn định' : overall === 'DEGRADED' ? 'Hệ thống đang dùng chế độ suy giảm/fallback' : 'Có thành phần đang lỗi',
     stockProviderMode: mode,

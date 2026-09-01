@@ -1,97 +1,92 @@
-# MarketScope V0.10.0 — Strategy Profiles & Smart Analysis
+# MarketScope V0.11.0 — Forecast Validation & Historical Accuracy
 
-MarketScope là web app mobile-first phân tích **Crypto Spot** và **chứng khoán Việt Nam**, không Futures, không SHORT, không leverage và không tự đặt lệnh.
+MarketScope là web app mobile-first phân tích **Crypto Spot**, **Stock VN** và **Forex/Metals**. V0.11.0 nâng trực tiếp từ V0.10.0 và giữ nguyên Technical Analysis, Strategy Profiles, Entry/SL/TP, Position/Exit, Backtest Calibration, Watchlist, Portfolio Risk, Data Quality Guard và Multi-horizon Forecast.
 
-V0.10.0 nâng trực tiếp từ V0.8.0 và giữ toàn bộ Market Data, Technical Analysis, Entry/SL/TP, Position/Exit, Backtest Calibration, Watchlist, Portfolio Risk và Data Quality Guard. Điểm mới là toàn bộ hệ thống hiểu cùng một **Strategy Profile** để tránh dùng một cách phân tích cho mọi thời gian nắm giữ.
+## Điểm mới V0.11.0
 
-## Strategy Profiles
+### 1. Rolling Forecast Validation
+Mỗi lần Analyze, nếu dữ liệu đủ chuẩn, server chạy rolling validation causal trên lịch sử của đúng:
 
-- **AUTO** — Smart Analysis đề xuất profile hiệu lực từ timeframe, Market Regime, ADX, ATR và RSI.
-- **Ngắn hạn** — vài giờ đến khoảng 3 ngày; ưu tiên momentum/vị trí vào, Entry và SL sát hơn.
-- **Swing** — khoảng 3 ngày đến 4 tuần; cân bằng trend, momentum, structure và R:R.
-- **Trung hạn** — khoảng 3 tuần đến 3 tháng; ưu tiên trend/structure, vùng Entry và SL rộng hơn.
-- **Dài hạn** — từ khoảng 3 tháng; ưu tiên EMA200/xu hướng lớn và giảm trọng số nhiễu ngắn hạn.
+- market
+- symbol
+- timeframe
+- effective Strategy Profile
 
-Strategy Profile điều khiển cùng lúc:
+Mỗi forecast lịch sử chỉ sử dụng dữ liệu có tại origin, không nhìn nến tương lai. Sau đó hệ thống đối chiếu giá thật ở đúng horizon.
 
-- trọng số Signal Score và ngưỡng BUY;
-- độ rộng Entry Zone;
-- ATR multiplier của Stop Loss;
-- TP1 / TP2 / TP3 theo R;
-- giới hạn mua đuổi;
-- Position protection / trailing / Exit S-M-L;
-- holding guide;
-- Backtest và calibration cohort.
+Các metric mới:
 
-## Smart Analysis / AUTO
+- Direction Accuracy
+- Beta(2,2) calibrated Direction Accuracy
+- Range Hit Rate
+- Average Absolute Forecast Error
+- Median Absolute Forecast Error
+- Raw Probability trung bình
+- Calibration Gap
+- Sample count theo SHORT / MEDIUM / LONG
 
-AUTO không phải AI dự đoán giá. Đây là rule engine minh bạch:
+### 2. Forecast Confidence Calibration
+Forecast hiện giữ cả:
 
-1. Chọn baseline theo timeframe.
-2. Điều chỉnh theo Market Regime và ADX.
-3. Kiểm tra volatility bằng ATR%.
-4. Bổ sung cảnh báo RSI/mua đuổi.
-5. Trả về `effective profile`, confidence, timeframe-fit và lý do.
+- Raw confidence
+- Calibrated confidence
+- Raw directional probability
+- Calibrated directional probability theo từng horizon
 
-Khi AUTO chọn một effective profile, **Backtest dùng cố định chính profile đó trên toàn bộ lịch sử của lần phân tích**. Kết quả calibrated rate không trộn tín hiệu Ngắn hạn với Swing/Trung hạn/Dài hạn.
+Khi mẫu ít, historical accuracy được shrink về 50% để tránh hiển thị xác suất quá đẹp từ vài mẫu nhỏ.
 
-## Positions
+### 3. History trở thành module thật
+Tab **History** không còn Coming Soon.
 
-Khi lưu vị thế, MarketScope lưu **effective profile** tại thời điểm phân tích. Exit Planner tiếp tục dùng profile đã khóa cho vị thế đó thay vì tự đổi horizon về sau.
+Forecast người dùng thực sự xem được lưu local trên thiết bị và gồm:
 
-Dữ liệu position cũ từ V0.8.0 không có profile sẽ migrate an toàn về **SWING**, tương đương logic mặc định trước V0.10.0.
+- mã / market / timeframe
+- Strategy Profile
+- origin price/time
+- bias + confidence
+- forecast ngắn / trung / dài
+- expected price
+- probability range
 
-## Watchlist
+Khi app tải lại đúng mã + timeframe và đã có đủ nến tương lai, record tự resolve thành:
 
-Mỗi item lưu riêng `market + symbol + interval + profile`. Có thể theo dõi cùng mã ở các strategy khác nhau. Với AUTO, card hiển thị `AUTO → effective profile` của dữ liệu mới nhất.
+- đúng/sai hướng
+- giá thực tế
+- range hit/miss
+- forecast error
 
-Watchlist cũ không có profile được migrate về SWING để bảo toàn hành vi cũ.
+History có thống kê tổng và tách riêng SHORT / MEDIUM / LONG.
 
-## Data Quality vẫn là lớp chặn cuối
+## Guardrails
 
-Strategy Profile không được phép vượt Data Quality Guard. Nếu dữ liệu stale, thiếu nến hoặc OHLC invalid, hệ thống khóa Signal/Entry/SL/TP dù profile đang cho setup BUY.
+- Historical accuracy không phải cam kết forecast tiếp theo sẽ đúng.
+- Forecast Validation chỉ so sánh trong cùng mã/timeframe/profile.
+- Data Quality Guard vẫn có quyền khóa phân tích/tín hiệu.
+- Crypto vẫn Spot-only, không Futures/leverage.
+- Forecast History hiện lưu localStorage, chưa cloud sync.
 
-## Stack
+## Market Data
 
-- Next.js 16
-- React 19
-- TypeScript 5.8
-- Lightweight Charts 5
-- Binance Spot public market data
-- SSI FastConnect cho Stock VN khi cấu hình credentials
-- Yahoo Finance fallback cho preview/backup
-- PWA Service Worker
+- Crypto Spot: Binance public API.
+- Stock VN: SSI FastConnect khi có credentials; fallback provider theo cấu hình hiện có.
+- Forex/Metals: Yahoo FX/Metals adapter, gồm EURUSD, GBPUSD, USDJPY, XAUUSD, XAGUSD và các cặp phổ biến.
 
 ## Chạy local
 
 ```bash
 npm install
-cp .env.example .env.local
 npm run dev
 ```
 
-Mở `http://localhost:3000`.
+Kiểm tra production:
+
+```bash
+npm run typecheck
+npm run build
+```
 
 ## Deploy Vercel
 
-Xem `DEPLOY-VERCEL.md`. Không cấu hình `Output Directory = out`; để Vercel nhận diện Next.js mặc định.
+Framework: Next.js. Không cấu hình `output: "export"`. **Output Directory để trống**.
 
-## Lưu ý về xác suất
-
-Signal Score không phải xác suất thắng. Calibrated win rate chỉ là thống kê lịch sử theo profile/setup/regime/score band khi đủ mẫu và không đảm bảo kết quả tương lai.
-
-## Roadmap
-
-- V0.1.0 Market Data ✅
-- V0.2.0 Technical & Regime ✅
-- V0.3.0 Entry / SL / TP ✅
-- V0.4.0 Position / Exit ✅
-- V0.5.0 Backtest & Calibration ✅
-- V0.6.0 Watchlist & Monitoring ✅
-- V0.7.0 Portfolio & Risk ✅
-- V0.8.0 Quality & Observability ✅
-- **V0.10.0 Strategy Profiles & Smart Analysis ✅**
-- V1.0.0 Production Ready → tiếp theo
-
-### V0.10.0 – Forex & Forecast
-MarketScope hỗ trợ 3 nhóm tài sản: Crypto Spot, Stock VN và Forex/Metals. Forex có danh sách mã chuẩn để tránh gửi mã không tồn tại sang Binance; ví dụ vàng dùng XAUUSD thay vì XAUUSDT. Analyze được chia theo tầng thông tin và có Forecast 3 horizon (ngắn/trung/dài hạn). Forecast là kịch bản xác suất dựa trên trend regression, Market Regime, RSI/MACD và ATR uncertainty band, không phải cam kết giá tương lai.
+Xem thêm `DEPLOY-VERCEL.md` và `VALIDATION.md`.
