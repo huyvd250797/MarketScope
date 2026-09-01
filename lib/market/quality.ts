@@ -132,7 +132,8 @@ export function assessMarketSnapshot(snapshot: MarketSnapshot, nowMs = Date.now(
     else warnings.push(text);
   }
   if (largeGaps > 0) warnings.push(`Phát hiện ${largeGaps} khoảng trống dữ liệu lớn hơn kỳ vọng.`);
-  if (zeroVolumeRatio >= 0.5) warnings.push(`${(zeroVolumeRatio * 100).toFixed(1)}% nến có volume = 0; chất lượng volume indicator có thể giảm.`);
+  if (zeroVolumeRatio >= 0.5 && snapshot.market !== 'FOREX') warnings.push(`${(zeroVolumeRatio * 100).toFixed(1)}% nến có volume = 0; chất lượng volume indicator có thể giảm.`);
+  if (zeroVolumeRatio >= 0.5 && snapshot.market === 'FOREX') warnings.push('Forex spot không có centralized volume từ provider; VWAP dùng equal-weight typical-price proxy.');
   if (priceDifferencePercent != null && priceDifferencePercent > 15) blockers.push(`Giá hiện tại lệch ${priceDifferencePercent.toFixed(1)}% so với close nến cuối; có thể có lỗi scale/split/provider.`);
   else if (priceDifferencePercent != null && priceDifferencePercent > 5) warnings.push(`Giá hiện tại lệch ${priceDifferencePercent.toFixed(1)}% so với close nến cuối.`);
 
@@ -146,7 +147,7 @@ export function assessMarketSnapshot(snapshot: MarketSnapshot, nowMs = Date.now(
   if (futureTimestamp) score -= 35;
   if (candles.length < MIN_SIGNAL_CANDLES) score -= 25;
   else if (candles.length < MIN_BACKTEST_CANDLES) score -= 8;
-  if (zeroVolumeRatio >= 0.5) score -= 10;
+  if (zeroVolumeRatio >= 0.5 && snapshot.market !== 'FOREX') score -= 10;
   if (priceDifferencePercent != null && priceDifferencePercent > 15) score -= 30;
   else if (priceDifferencePercent != null && priceDifferencePercent > 5) score -= 8;
   score = Math.max(0, Math.min(100, Math.round(score)));
@@ -202,7 +203,7 @@ export function applyDataQualityGuard(signal: TradeSignal, quality: DataQualityR
     riskReward: { toTP1: null, toTP2: null, toTP3: null },
     warnings: [`Data Quality Guard: ${reason}`, ...signal.warnings].slice(0, 8),
     guardrails: [
-      `V0.9.0 khóa Entry/SL/TP khi data quality không đạt: ${quality.statusLabel}.`,
+      `V0.10.0 khóa Entry/SL/TP khi data quality không đạt: ${quality.statusLabel}.`,
       ...signal.guardrails,
     ],
     disclaimer: `${signal.disclaimer} Tín hiệu hiện tại đang bị Data Quality Guard khóa cho tới khi dữ liệu đạt điều kiện freshness/integrity.`,

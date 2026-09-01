@@ -7,6 +7,7 @@ import { hasSsiCredentials } from '@/lib/market/provider';
 import { probeSsiHealth } from '@/lib/market/ssi';
 import type { Candle, HealthCheckItem, SystemHealthSnapshot } from '@/lib/market/types';
 import { probeYahooHealth } from '@/lib/market/yahoo';
+import { probeForexHealth } from '@/lib/market/forex';
 
 function syntheticCandles(count = 340): Candle[] {
   const rows: Candle[] = [];
@@ -105,12 +106,14 @@ export async function getSystemHealth(): Promise<SystemHealthSnapshot> {
       ? safeCheck('ssi', 'SSI FastConnect', probeSsiHealth, { selected: selectedSsi, configured: true })
       : Promise.resolve<HealthCheckItem>({ key: 'ssi', label: 'SSI FastConnect', status: selectedSsi ? 'PROVIDER_ERROR' : 'DEGRADED', latencyMs: null, message: 'Chưa cấu hình SSI_API_KEY / SSI_API_SECRET.', selected: selectedSsi, configured: false }),
     safeCheck('yahoo', 'Yahoo Finance fallback', probeYahooHealth, { selected: selectedYahoo, configured: true }),
+    safeCheck('forex', 'Forex / Metals', probeForexHealth, { selected: true, configured: true }),
   ]);
 
   const engines = engineChecks();
   const binanceCheck = providerChecks.find((item) => item.key === 'binance');
   const ssiCheck = providerChecks.find((item) => item.key === 'ssi');
   const yahooCheck = providerChecks.find((item) => item.key === 'yahoo');
+  const forexCheck = providerChecks.find((item) => item.key === 'forex');
   const engineError = engines.some((item) => item.status === 'PROVIDER_ERROR');
   const cryptoError = binanceCheck?.status === 'PROVIDER_ERROR';
   const stockHardError = mode === 'SSI'
@@ -123,12 +126,12 @@ export async function getSystemHealth(): Promise<SystemHealthSnapshot> {
   const stockDegraded = selectedYahoo || (mode === 'AUTO' && ssiConfigured && ssiCheck?.status === 'PROVIDER_ERROR' && fallbackEnabled && yahooCheck?.status !== 'PROVIDER_ERROR');
 
   let overall: SystemHealthSnapshot['overall'] = 'HEALTHY';
-  if (cryptoError || stockHardError || engineError) overall = 'PROVIDER_ERROR';
+  if (cryptoError || stockHardError || forexCheck?.status === 'PROVIDER_ERROR' || engineError) overall = 'PROVIDER_ERROR';
   else if (stockDegraded) overall = 'DEGRADED';
 
   return {
     generatedAt: new Date().toISOString(),
-    version: '0.9.0',
+    version: '0.10.0',
     overall,
     overallLabel: overall === 'HEALTHY' ? 'Hệ thống ổn định' : overall === 'DEGRADED' ? 'Hệ thống đang dùng chế độ suy giảm/fallback' : 'Có thành phần đang lỗi',
     stockProviderMode: mode,
@@ -136,14 +139,15 @@ export async function getSystemHealth(): Promise<SystemHealthSnapshot> {
     providers: providerChecks,
     engines,
     cachePolicies: [
-      { endpoint: '/api/market/candles', policy: 'CRYPTO 10s / STOCK 30s', note: 'Browser gọi no-store; CDN có stale-while-revalidate ngắn. Data Quality luôn kiểm tra dataAt trước khi cho BUY.' },
-      { endpoint: '/api/market/monitor', policy: 'CRYPTO 15s / STOCK 45s', note: 'Watchlist refresh 5 phút ở client; API không dùng cache dài.' },
+      { endpoint: '/api/market/candles', policy: 'CRYPTO 10s / STOCK 30s / FOREX 30s', note: 'Browser gọi no-store; CDN có stale-while-revalidate ngắn. Data Quality luôn kiểm tra dataAt trước khi cho BUY.' },
+      { endpoint: '/api/market/monitor', policy: 'CRYPTO 15s / STOCK 45s / FOREX 30s', note: 'Watchlist refresh 5 phút ở client; API không dùng cache dài.' },
       { endpoint: '/api/market/portfolio', policy: 'no-store', note: 'Giá vốn/số lượng không được cache hoặc lưu server.' },
       { endpoint: '/api/system/health', policy: 'no-store', note: 'Diagnostics luôn chạy mới khi mở/refresh Settings.' },
     ],
     notes: [
       'Health endpoint không trả API key/secret và không ghi credential vào response.',
       'Yahoo Finance là fallback/unofficial; nếu đang được chọn thì overall được đánh DEGRADED dù endpoint vẫn hoạt động.',
+      'Forex/Metals dùng provider riêng; Spot FX không có centralized volume nên VWAP dùng typical-price proxy.',
       'Strategy Profile Engine quyết định horizon/weights trước Signal/Backtest; Data Quality Guard của từng mã vẫn là lớp quyết định cuối cùng có cho phép phát Entry/SL/TP hay không.',
     ],
   };

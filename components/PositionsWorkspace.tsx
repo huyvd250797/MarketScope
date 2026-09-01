@@ -61,7 +61,7 @@ export default function PositionsWorkspace(props: Props) {
             {positions.map((item) => (
               <article className={`saved-position ${snapshot?.symbol === item.symbol && market === item.market ? 'active' : ''}`} key={`${item.market}-${item.symbol}`}>
                 <button className="saved-position-main" onClick={() => props.onOpen(item)}>
-                  <span className="saved-position-market">{item.market === 'CRYPTO' ? 'CRYPTO' : 'STOCK VN'}</span>
+                  <span className="saved-position-market">{item.market === 'CRYPTO' ? 'CRYPTO' : item.market === 'FOREX' ? 'FOREX' : 'STOCK VN'}</span>
                   <strong>{item.symbol}</strong>
                   <small>Giá vốn: {formatPositionPrice(item)} • Số lượng: {formatQuantity(item.quantity || 1)} • {formatInterval(item.interval)} • {effectiveProfileLabel(item.strategyProfile || 'SWING')}</small>
                 </button>
@@ -75,14 +75,14 @@ export default function PositionsWorkspace(props: Props) {
       <div className="position-asset-card">
         <div className="market-toggle" role="tablist" aria-label="Chọn thị trường cho vị thế">
           <button className={market === 'CRYPTO' ? 'active' : ''} onClick={() => props.onMarket('CRYPTO')}>CRYPTO</button>
-          <button className={market === 'STOCK' ? 'active' : ''} onClick={() => props.onMarket('STOCK')}>STOCK VN</button>
+          <button className={market === 'STOCK' ? 'active' : ''} onClick={() => props.onMarket('STOCK')}>STOCK VN</button><button className={market === 'FOREX' ? 'active' : ''} onClick={() => props.onMarket('FOREX')}>FOREX</button>
         </div>
         <div className="position-asset-row">
           <input
             value={query}
             onChange={(event) => props.onQuery(event.target.value.toUpperCase())}
             onKeyDown={(event) => { if (event.key === 'Enter') props.onSubmit(); }}
-            placeholder={market === 'CRYPTO' ? 'BTCUSDT' : 'FPT'}
+            placeholder={market === 'CRYPTO' ? 'BTCUSDT' : market === 'FOREX' ? 'EURUSD' : 'FPT'}
             autoCapitalize="characters"
             spellCheck={false}
           />
@@ -134,7 +134,7 @@ export default function PositionsWorkspace(props: Props) {
         <div className="positions-empty compact-empty"><span>◎</span><strong>Chưa có vị thế đã lưu</strong><p>Chọn mã, nhập giá đã mua và bấm “Phân tích vị thế”. Vị thế sẽ được lưu cục bộ trên thiết bị.</p></div>
       )}
 
-      <div className="settings-card muted-card"><strong>Phạm vi Positions V0.9.0</strong><p>Mỗi vị thế lưu effective Strategy Profile tại thời điểm phân tích. Exit Planner dùng đúng profile đó cho mốc bảo vệ và horizon; Data Quality Guard vẫn được giữ nguyên. Giá vốn + số lượng + profile chỉ lưu localStorage.</p></div>
+      <div className="settings-card muted-card"><strong>Phạm vi Positions V0.10.0</strong><p>Mỗi vị thế lưu effective Strategy Profile tại thời điểm phân tích. Exit Planner dùng đúng profile đó cho mốc bảo vệ và horizon; Data Quality Guard vẫn được giữ nguyên. Giá vốn + số lượng + profile chỉ lưu localStorage.</p></div>
     </section>
   );
 }

@@ -98,7 +98,7 @@ export default function PortfolioPanel({ positions, onOpen }: Props) {
                 const weight = bucket && bucket.currentValue > 0 ? item.currentValue / bucket.currentValue * 100 : 0;
                 return (
                   <button className="portfolio-position-row" key={`${item.market}-${item.symbol}`} onClick={() => saved && onOpen(saved)}>
-                    <div className="portfolio-symbol"><strong>{item.symbol}</strong><span>{item.market === 'STOCK' ? 'STOCK VN' : 'CRYPTO'} • {effectiveProfileLabel(item.strategyProfile)} • {formatQuantity(item.quantity)}{item.dataQualityScore != null ? ` • Data ${item.dataQualityScore}/100` : ''}</span></div>
+                    <div className="portfolio-symbol"><strong>{item.symbol}</strong><span>{item.market === 'STOCK' ? 'STOCK VN' : item.market === 'FOREX' ? 'FOREX' : 'CRYPTO'} • {effectiveProfileLabel(item.strategyProfile)} • {formatQuantity(item.quantity)}{item.dataQualityScore != null ? ` • Data ${item.dataQualityScore}/100` : ''}</span></div>
                     <div><span>Giá trị</span><strong>{formatMoney(item.currentValue, item.currency)}</strong></div>
                     <div className={item.pnlValue >= 0 ? 'gain-text' : 'loss-text'}><span>P/L</span><strong>{item.pnlPercent >= 0 ? '+' : ''}{item.pnlPercent.toFixed(2)}%</strong></div>
                     <div><span>Tỷ trọng</span><strong>{weight.toFixed(1)}%</strong></div>

@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'MarketScope V0.9.0',
+  title: 'MarketScope V0.10.0',
   description: 'Mobile-first Crypto Spot and Vietnam Stock analysis with Strategy Profiles, Smart Analysis, Data Quality Guard, Portfolio Risk, Entry/SL/TP, Watchlist and profile-aware Backtest Calibration.',
   manifest: '/manifest.webmanifest',
   applicationName: 'MarketScope',

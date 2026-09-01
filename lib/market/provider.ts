@@ -2,10 +2,12 @@ import { BinanceProvider } from './binance';
 import { SsiFastConnectProvider } from './ssi';
 import type { Interval, MarketSnapshot, MarketType, ProviderDiagnostics } from './types';
 import { YahooVietnamStockProvider } from './yahoo';
+import { YahooForexProvider } from './forex';
 
 const binance = new BinanceProvider();
 const ssi = new SsiFastConnectProvider();
 const yahoo = new YahooVietnamStockProvider();
+const forex = new YahooForexProvider();
 
 export function hasSsiCredentials(): boolean {
   return Boolean(process.env.SSI_API_KEY?.trim() && process.env.SSI_API_SECRET?.trim());
@@ -32,6 +34,14 @@ export async function getMarketSnapshot(market: MarketType, symbol: string, inte
       fallbackUsed: false,
       fallbackReason: null,
       latencyMs: elapsed(startedAt),
+    });
+  }
+
+  if (market === 'FOREX') {
+    const snapshot = await forex.getSnapshot(symbol, interval);
+    return withDiagnostics(snapshot, {
+      requestedMode: 'YAHOO_FX', selectedProvider: snapshot.provider, route: 'DIRECT', configured: true,
+      fallbackUsed: false, fallbackReason: null, latencyMs: elapsed(startedAt),
     });
   }
 

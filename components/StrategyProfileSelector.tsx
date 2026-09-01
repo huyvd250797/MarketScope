@@ -54,7 +54,7 @@ export default function StrategyProfileSelector({ value, strategy, market, onCha
           <div>
             <p>{strategy.description}</p>
             {strategy.rationale.map((item) => <p key={item}>• {item}</p>)}
-            <p>• {market === 'CRYPTO' ? 'Crypto Spot' : 'Stock VN'} • LONG-only • không leverage.</p>
+            <p>• {market === 'CRYPTO' ? 'Crypto Spot' : market === 'FOREX' ? 'Forex' : 'Stock VN'} • LONG-only • không leverage.</p>
           </div>
         </details>
       )}

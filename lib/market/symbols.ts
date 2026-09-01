@@ -62,6 +62,23 @@ export const stockSymbols: SymbolItem[] = [
   market: 'STOCK' as const,
 }));
 
+
+export const forexSymbols: SymbolItem[] = [
+  ['EURUSD','Euro / US Dollar','FOREX','EURUSD=X'],
+  ['GBPUSD','British Pound / US Dollar','FOREX','GBPUSD=X'],
+  ['USDJPY','US Dollar / Japanese Yen','FOREX','JPY=X'],
+  ['USDCHF','US Dollar / Swiss Franc','FOREX','CHF=X'],
+  ['AUDUSD','Australian Dollar / US Dollar','FOREX','AUDUSD=X'],
+  ['NZDUSD','New Zealand Dollar / US Dollar','FOREX','NZDUSD=X'],
+  ['USDCAD','US Dollar / Canadian Dollar','FOREX','CAD=X'],
+  ['EURJPY','Euro / Japanese Yen','FOREX','EURJPY=X'],
+  ['EURGBP','Euro / British Pound','FOREX','EURGBP=X'],
+  ['GBPJPY','British Pound / Japanese Yen','FOREX','GBPJPY=X'],
+  ['AUDJPY','Australian Dollar / Japanese Yen','FOREX','AUDJPY=X'],
+  ['XAUUSD','Gold / US Dollar','METALS','GC=F'],
+  ['XAGUSD','Silver / US Dollar','METALS','SI=F'],
+].map(([symbol,name,exchange,providerSymbol]) => ({ symbol, name, exchange, providerSymbol, market:'FOREX' as const }));
+
 export function normalizeInputSymbol(market: MarketType, input: string): string {
   const clean = input.trim().toUpperCase().replace(/[^A-Z0-9.-]/g, '');
   if (!clean) return '';
@@ -69,12 +86,13 @@ export function normalizeInputSymbol(market: MarketType, input: string): string 
     if (clean.endsWith('USDT') || clean.endsWith('USDC') || clean.endsWith('BTC')) return clean;
     return `${clean}USDT`;
   }
+  if (market === 'FOREX') return clean.replace(/=X$/i, '');
   return clean.replace(/\.(VN|HN)$/i, '');
 }
 
 export function searchLocalSymbols(market: MarketType, query: string, limit = 8): SymbolItem[] {
   const q = query.trim().toUpperCase();
-  const source = market === 'CRYPTO' ? cryptoSymbols : stockSymbols;
+  const source = market === 'CRYPTO' ? cryptoSymbols : market === 'FOREX' ? forexSymbols : stockSymbols;
   if (!q) return source.slice(0, limit);
 
   return source
@@ -89,4 +107,8 @@ export function searchLocalSymbols(market: MarketType, query: string, limit = 8)
 
 export function getStockMetadata(symbol: string): SymbolItem | undefined {
   return stockSymbols.find((item) => item.symbol === symbol.toUpperCase());
+}
+
+export function getForexMetadata(symbol: string): SymbolItem | undefined {
+  return forexSymbols.find((item) => item.symbol === symbol.toUpperCase());
 }

@@ -50,7 +50,8 @@ export async function POST(request: NextRequest) {
     }
 
     const valid = raw.map((item) => {
-      const market: MarketType = String(item.market).toUpperCase() === 'STOCK' ? 'STOCK' : 'CRYPTO';
+      const rawMarket=String(item.market).toUpperCase();
+      const market: MarketType = rawMarket === 'STOCK' ? 'STOCK' : rawMarket === 'FOREX' ? 'FOREX' : 'CRYPTO';
       const symbol = normalizeInputSymbol(market, String(item.symbol || ''));
       const intervalCandidate = String(item.interval || (market === 'STOCK' ? '1d' : '1h')) as Interval;
       const interval: Interval = intervals.has(intervalCandidate) && !(market === 'STOCK' && intervalCandidate === '4h') ? intervalCandidate : market === 'STOCK' ? '1d' : '1h';
@@ -155,7 +156,7 @@ export async function POST(request: NextRequest) {
         'Không cộng trực tiếp VND với USD/USDT; MarketScope tách danh mục theo từng đồng tiền để tránh tổng vốn sai.',
         'Risk to Stop là ước lượng theo mốc bảo vệ kỹ thuật của từng Position Engine, không phải mức lỗ tối đa được đảm bảo.',
         'Dữ liệu giá vốn/số lượng chỉ được dùng trong request tính danh mục và không được lưu bởi API MarketScope.',
-        'V0.9.0 giữ Data Quality theo từng vị thế; dữ liệu stale/degraded phải được kiểm tra trước khi ra quyết định.',
+        'V0.10.0 giữ Data Quality theo từng vị thế; dữ liệu stale/degraded phải được kiểm tra trước khi ra quyết định.',
       ],
     };
     return NextResponse.json({ ...result, correlationId }, { headers: { 'Cache-Control': 'no-store', 'X-Correlation-Id': correlationId } });

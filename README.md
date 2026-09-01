@@ -1,8 +1,8 @@
-# MarketScope V0.9.0 — Strategy Profiles & Smart Analysis
+# MarketScope V0.10.0 — Strategy Profiles & Smart Analysis
 
 MarketScope là web app mobile-first phân tích **Crypto Spot** và **chứng khoán Việt Nam**, không Futures, không SHORT, không leverage và không tự đặt lệnh.
 
-V0.9.0 nâng trực tiếp từ V0.8.0 và giữ toàn bộ Market Data, Technical Analysis, Entry/SL/TP, Position/Exit, Backtest Calibration, Watchlist, Portfolio Risk và Data Quality Guard. Điểm mới là toàn bộ hệ thống hiểu cùng một **Strategy Profile** để tránh dùng một cách phân tích cho mọi thời gian nắm giữ.
+V0.10.0 nâng trực tiếp từ V0.8.0 và giữ toàn bộ Market Data, Technical Analysis, Entry/SL/TP, Position/Exit, Backtest Calibration, Watchlist, Portfolio Risk và Data Quality Guard. Điểm mới là toàn bộ hệ thống hiểu cùng một **Strategy Profile** để tránh dùng một cách phân tích cho mọi thời gian nắm giữ.
 
 ## Strategy Profiles
 
@@ -39,7 +39,7 @@ Khi AUTO chọn một effective profile, **Backtest dùng cố định chính pr
 
 Khi lưu vị thế, MarketScope lưu **effective profile** tại thời điểm phân tích. Exit Planner tiếp tục dùng profile đã khóa cho vị thế đó thay vì tự đổi horizon về sau.
 
-Dữ liệu position cũ từ V0.8.0 không có profile sẽ migrate an toàn về **SWING**, tương đương logic mặc định trước V0.9.0.
+Dữ liệu position cũ từ V0.8.0 không có profile sẽ migrate an toàn về **SWING**, tương đương logic mặc định trước V0.10.0.
 
 ## Watchlist
 
@@ -90,5 +90,8 @@ Signal Score không phải xác suất thắng. Calibrated win rate chỉ là th
 - V0.6.0 Watchlist & Monitoring ✅
 - V0.7.0 Portfolio & Risk ✅
 - V0.8.0 Quality & Observability ✅
-- **V0.9.0 Strategy Profiles & Smart Analysis ✅**
+- **V0.10.0 Strategy Profiles & Smart Analysis ✅**
 - V1.0.0 Production Ready → tiếp theo
+
+### V0.10.0 – Forex & Forecast
+MarketScope hỗ trợ 3 nhóm tài sản: Crypto Spot, Stock VN và Forex/Metals. Forex có danh sách mã chuẩn để tránh gửi mã không tồn tại sang Binance; ví dụ vàng dùng XAUUSD thay vì XAUUSDT. Analyze được chia theo tầng thông tin và có Forecast 3 horizon (ngắn/trung/dài hạn). Forecast là kịch bản xác suất dựa trên trend regression, Market Regime, RSI/MACD và ATR uncertainty band, không phải cam kết giá tương lai.
