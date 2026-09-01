@@ -15,7 +15,7 @@ const intervals = new Set<Interval>(['15m', '1h', '4h', '1d', '1w']);
 
 export async function GET(request: NextRequest) {
   const marketParam = request.nextUrl.searchParams.get('market')?.toUpperCase();
-  const market: MarketType = marketParam === 'STOCK' ? 'STOCK' : 'CRYPTO';
+  const market: MarketType = marketParam === 'STOCK' ? 'STOCK' : marketParam === 'FOREX' ? 'FOREX' : 'CRYPTO';
   const rawSymbol = request.nextUrl.searchParams.get('symbol') || '';
   const symbol = normalizeInputSymbol(market, rawSymbol);
   const requestedInterval = request.nextUrl.searchParams.get('interval') as Interval | null;
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Vui lòng nhập mã tài sản', correlationId }, { status: 400 });
   }
   if (market === 'STOCK' && interval === '4h') {
-    return NextResponse.json({ error: 'Chứng khoán V0.9.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
+    return NextResponse.json({ error: 'Chứng khoán V0.10.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
   }
 
   try {

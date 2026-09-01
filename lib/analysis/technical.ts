@@ -173,8 +173,9 @@ function rollingVwap(candles: Candle[], market: MarketType): Maybe[] {
         lastDay = day;
       }
       const typical = (candle.high + candle.low + candle.close) / 3;
-      pv += typical * candle.volume;
-      volume += candle.volume;
+      const weight = market === 'FOREX' ? 1 : candle.volume;
+      pv += typical * weight;
+      volume += weight;
       out[i] = volume > 0 ? pv / volume : typical;
     });
     return out;
@@ -185,12 +186,14 @@ function rollingVwap(candles: Candle[], market: MarketType): Maybe[] {
   let volume = 0;
   for (let i = 0; i < candles.length; i += 1) {
     const typical = (candles[i].high + candles[i].low + candles[i].close) / 3;
-    pv += typical * candles[i].volume;
-    volume += candles[i].volume;
+    const weight = market === 'FOREX' ? 1 : candles[i].volume;
+    pv += typical * weight;
+    volume += weight;
     if (i >= period) {
       const old = candles[i - period];
-      pv -= ((old.high + old.low + old.close) / 3) * old.volume;
-      volume -= old.volume;
+      const oldWeight = market === 'FOREX' ? 1 : old.volume;
+      pv -= ((old.high + old.low + old.close) / 3) * oldWeight;
+      volume -= oldWeight;
     }
     if (i >= period - 1) out[i] = volume > 0 ? pv / volume : null;
   }

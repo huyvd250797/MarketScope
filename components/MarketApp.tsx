@@ -10,6 +10,7 @@ import BacktestPanel from './BacktestPanel';
 import DataQualityPanel from './DataQualityPanel';
 import SystemHealthPanel from './SystemHealthPanel';
 import StrategyProfileSelector from './StrategyProfileSelector';
+import ForecastPanel from './ForecastPanel';
 import { analyzePositionExit } from '@/lib/analysis/position';
 import type { Interval, MarketSnapshot, MarketType, PositionExitAnalysis, SavedPosition, StrategyProfileKey, SymbolItem, WatchlistMonitorSnapshot } from '@/lib/market/types';
 
@@ -20,9 +21,11 @@ type ApiError = { error?: string; correlationId?: string };
 
 const cryptoIntervals: Interval[] = ['15m', '1h', '4h', '1d', '1w'];
 const stockIntervals: Interval[] = ['15m', '1h', '1d', '1w'];
+const forexIntervals: Interval[] = ['15m', '1h', '4h', '1d', '1w'];
 const defaults: Record<MarketType, { symbol: string; interval: Interval }> = {
   CRYPTO: { symbol: 'BTCUSDT', interval: '1h' },
   STOCK: { symbol: 'FPT', interval: '1d' },
+  FOREX: { symbol: 'EURUSD', interval: '1h' },
 };
 
 export default function MarketApp() {
@@ -41,7 +44,7 @@ export default function MarketApp() {
   const [dark, setDark] = useState(false);
   const [nav, setNav] = useState<NavKey>('analyze');
   const [overlays, setOverlays] = useState<ChartOverlays>({ ema20: true, ema50: true, ema200: true, vwap: true, signals: true, position: false });
-  const [recent, setRecent] = useState<Record<MarketType, string[]>>({ CRYPTO: [], STOCK: [] });
+  const [recent, setRecent] = useState<Record<MarketType, string[]>>({ CRYPTO: [], STOCK: [], FOREX: [] });
   const [savedPositions, setSavedPositions] = useState<SavedPosition[]>([]);
   const [watchlist, setWatchlist] = useState<WatchlistItem[]>([]);
   const [watchlistStates, setWatchlistStates] = useState<Record<string, WatchlistState>>({});
@@ -57,7 +60,7 @@ export default function MarketApp() {
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const watchRefreshRef = useRef(false);
 
-  const availableIntervals = market === 'CRYPTO' ? cryptoIntervals : stockIntervals;
+  const availableIntervals = market === 'CRYPTO' ? cryptoIntervals : market === 'FOREX' ? forexIntervals : stockIntervals;
 
   const resolveTheme = useCallback((pref: ThemePreference) => {
     const isDark = pref === 'dark' || (pref === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -75,7 +78,7 @@ export default function MarketApp() {
 
     try {
       const savedRecent = JSON.parse(localStorage.getItem('marketscope-recent') || '{}') as Partial<Record<MarketType, string[]>>;
-      setRecent({ CRYPTO: savedRecent.CRYPTO || [], STOCK: savedRecent.STOCK || [] });
+      setRecent({ CRYPTO: savedRecent.CRYPTO || [], STOCK: savedRecent.STOCK || [], FOREX: savedRecent.FOREX || [] });
     } catch {
       // Ignore corrupt local storage.
     }
@@ -413,9 +416,9 @@ export default function MarketApp() {
           <div>
             <div className="brand-row">
               <strong>MarketScope</strong>
-              <span className="version-badge">V0.9.0</span>
+              <span className="version-badge">V0.10.0</span>
             </div>
-            <span className="brand-sub">Strategy Profiles • Smart Analysis • Spot-only</span>
+            <span className="brand-sub">Crypto Spot • Stock VN • Forex • Smart Forecast</span>
           </div>
         </div>
         <button className="theme-button" onClick={() => setNav('settings')} aria-label="Cài đặt giao diện">
@@ -482,6 +485,7 @@ export default function MarketApp() {
             <div className="market-toggle" role="tablist" aria-label="Chọn thị trường">
               <button className={market === 'CRYPTO' ? 'active' : ''} onClick={() => switchMarket('CRYPTO')}>CRYPTO</button>
               <button className={market === 'STOCK' ? 'active' : ''} onClick={() => switchMarket('STOCK')}>STOCK VN</button>
+              <button className={market === 'FOREX' ? 'active' : ''} onClick={() => switchMarket('FOREX')}>FOREX</button>
             </div>
 
             <section className="search-card">
@@ -504,7 +508,7 @@ export default function MarketApp() {
                     autoComplete="off"
                     autoCapitalize="characters"
                     spellCheck={false}
-                    placeholder={market === 'CRYPTO' ? 'BTC, ETH, SOL…' : 'FPT, VNM, HPG…'}
+                    placeholder={market === 'CRYPTO' ? 'BTC, ETH, SOL…' : market === 'FOREX' ? 'EURUSD, GBPUSD, XAUUSD…' : 'FPT, VNM, HPG…'}
                   />
                   {suggestOpen && suggestions.length > 0 && (
                     <div className="suggestions">
@@ -522,7 +526,7 @@ export default function MarketApp() {
 
               <div className="recent-row">
                 <span>Gần đây</span>
-                {(recent[market].length ? recent[market] : market === 'CRYPTO' ? ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'] : ['FPT', 'VNM', 'HPG']).map((item) => (
+                {(recent[market].length ? recent[market] : market === 'CRYPTO' ? ['BTCUSDT','ETHUSDT','SOLUSDT'] : market === 'FOREX' ? ['EURUSD','GBPUSD','XAUUSD'] : ['FPT','VNM','HPG']).map((item) => (
                   <button key={item} onClick={() => { setQuery(item); setSymbol(item); }}>{item}</button>
                 ))}
               </div>
@@ -576,10 +580,13 @@ export default function MarketApp() {
               ) : null}
             </section>
 
-            {!loading && snapshot?.quality && <DataQualityPanel quality={snapshot.quality} provider={snapshot.providerDiagnostics} compact />}
             {!loading && snapshot?.signal && <SignalPanel signal={snapshot.signal} snapshot={snapshot} />}
-            {!loading && snapshot?.backtest && <BacktestPanel backtest={snapshot.backtest} snapshot={snapshot} />}
-            {!loading && snapshot?.analysis && <TechnicalAnalysisPanel analysis={snapshot.analysis} snapshot={snapshot} />}
+            {!loading && snapshot?.forecast && <ForecastPanel forecast={snapshot.forecast} snapshot={snapshot} />}
+            <section className="analysis-details-card"><div className="section-title-row"><div><h2>Phân tích chuyên sâu</h2><span>Giữ đầy đủ thông tin nhưng gom theo nhóm để dễ đọc</span></div></div>
+              {!loading && snapshot?.analysis && <details open className="analysis-group"><summary>Chỉ báo kỹ thuật & Market Regime</summary><TechnicalAnalysisPanel analysis={snapshot.analysis} snapshot={snapshot} /></details>}
+              {!loading && snapshot?.backtest && <details className="analysis-group"><summary>Backtest & Calibration</summary><BacktestPanel backtest={snapshot.backtest} snapshot={snapshot} /></details>}
+              {!loading && snapshot?.quality && <details className="analysis-group"><summary>Chất lượng dữ liệu & Provider</summary><DataQualityPanel quality={snapshot.quality} provider={snapshot.providerDiagnostics} compact={false} /></details>}
+            </section>
 
             <section className="chart-card">
               <div className="section-title-row">
@@ -604,12 +611,12 @@ export default function MarketApp() {
             <section className="roadmap-card">
               <div className="roadmap-icon">↗</div>
               <div>
-                <strong>V0.9.0 • Strategy Profiles & Smart Analysis</strong>
-                <p>AUTO / Ngắn hạn / Swing / Trung hạn / Dài hạn cùng điều khiển Entry, SL, TP, holding horizon và backtest; AUTO đề xuất profile theo regime, ADX, ATR và timeframe hiện tại.</p>
+                <strong>V0.10.0 • Forex & Multi-horizon Forecast</strong>
+                <p>Bổ sung Forex/kim loại, tái cấu trúc Analyze theo tầng thông tin và dự báo hành vi giá theo ngắn/trung/dài hạn bằng kịch bản xác suất.</p>
               </div>
             </section>
 
-            <p className="disclaimer">MarketScope V0.9.0 chỉ phân tích Spot/position LONG không leverage. Strategy Profile thay đổi rule/horizon nên calibrated rate chỉ so sánh trong cùng effective profile; Data Quality Guard vẫn có quyền khóa tín hiệu nếu dữ liệu không đạt chuẩn.</p>
+            <p className="disclaimer">MarketScope V0.10.0: Crypto vẫn Spot/position LONG không leverage; Forex là phân tích thị trường, không tự đặt lệnh. Strategy Profile thay đổi rule/horizon nên calibrated rate chỉ so sánh trong cùng effective profile; Data Quality Guard vẫn có quyền khóa tín hiệu nếu dữ liệu không đạt chuẩn.</p>
           </>
         )}
       </section>
@@ -641,7 +648,7 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
   return (
     <section className="panel-page">
       <button className="back-button" onClick={onBack}>← Quay lại</button>
-      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.9.0 • Strategy Profiles • Spot-only.</p></div>
+      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.10.0 • Forex • Forecast • Structured UX.</p></div>
       <div className="settings-card">
         <strong>Giao diện</strong>
         <p>Dark / Light / Auto được lưu trên thiết bị.</p>
@@ -657,15 +664,15 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
       <div className="settings-card">
         <strong>Market data providers</strong>
         <p><b>Crypto:</b> Binance public market data — không cần API key.</p>
-        <p><b>Stock VN:</b> ưu tiên SSI FastConnect khi cấu hình server env; fallback giúp preview khi chưa có SSI.</p>
+        <p><b>Stock VN:</b> ưu tiên SSI FastConnect khi cấu hình server env; fallback giúp preview khi chưa có SSI.</p><p><b>Forex:</b> Yahoo FX/Metals cho EURUSD, GBPUSD, USDJPY, XAUUSD và các cặp phổ biến.</p>
       </div>
       <div className="settings-card">
         <strong>Watchlist notifications</strong>
-        <p>Bật/tắt quyền thông báo tại module Watchlist. V0.9.0 chỉ kiểm tra khi Watchlist đang mở; push nền/cloud scheduler chưa bật mặc định.</p>
+        <p>Bật/tắt quyền thông báo tại module Watchlist. V0.10.0 chỉ kiểm tra khi Watchlist đang mở; push nền/cloud scheduler chưa bật mặc định.</p>
       </div>
       <div className="settings-card muted-card">
         <strong>Phiên bản</strong>
-        <p>MarketScope V0.9.0 — Strategy Profiles & Smart Analysis.</p>
+        <p>MarketScope V0.10.0 — Forex & Multi-horizon Forecast UX.</p>
       </div>
     </section>
   );

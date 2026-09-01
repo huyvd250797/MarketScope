@@ -1,4 +1,4 @@
-export type MarketType = 'CRYPTO' | 'STOCK';
+export type MarketType = 'CRYPTO' | 'STOCK' | 'FOREX';
 
 export type Interval = '15m' | '1h' | '4h' | '1d' | '1w';
 
@@ -273,6 +273,7 @@ export type MarketSnapshot = {
   quality?: DataQualityReport;
   providerDiagnostics?: ProviderDiagnostics;
   strategy?: StrategyProfileAnalysis;
+  forecast?: PriceForecast;
   fallbackUsed?: boolean;
   warning?: string;
 };
@@ -282,6 +283,32 @@ export interface MarketProvider {
   getSnapshot(symbol: string, interval: Interval): Promise<MarketSnapshot>;
 }
 
+
+
+export type ForecastHorizon = 'SHORT' | 'MEDIUM' | 'LONG';
+
+export type PriceForecast = {
+  generatedAt: string;
+  methodology: string;
+  confidence: number;
+  overallBias: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+  overallLabel: string;
+  scenarios: Array<{
+    horizon: ForecastHorizon;
+    label: string;
+    timeGuide: string;
+    direction: 'UP' | 'DOWN' | 'SIDEWAYS';
+    directionLabel: string;
+    probability: number;
+    expectedPrice: number;
+    expectedChangePercent: number;
+    rangeLow: number;
+    rangeHigh: number;
+    invalidationNote: string;
+    drivers: string[];
+  }>;
+  disclaimer: string;
+};
 
 export type DataHealthStatus = 'HEALTHY' | 'DEGRADED' | 'STALE_DATA' | 'INVALID_DATA' | 'PROVIDER_ERROR';
 

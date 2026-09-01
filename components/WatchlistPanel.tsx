@@ -36,6 +36,7 @@ type Props = {
 
 const cryptoIntervals: Interval[] = ['15m', '1h', '4h', '1d', '1w'];
 const stockIntervals: Interval[] = ['15m', '1h', '1d', '1w'];
+const forexIntervals: Interval[] = ['15m','1h','4h','1d','1w'];
 
 export function watchlistKey(item: Pick<WatchlistItem, 'market' | 'symbol' | 'interval'> & { profile?: StrategyProfileKey }) {
   return `${item.market}:${item.symbol.toUpperCase()}:${item.interval}:${item.profile || 'SWING'}`;
@@ -46,7 +47,7 @@ export default function WatchlistPanel({ items, states, refreshing, lastRefresh,
   const [draftSymbol, setDraftSymbol] = useState('');
   const [draftInterval, setDraftInterval] = useState<Interval>('1h');
   const [draftProfile, setDraftProfile] = useState<StrategyProfileKey>('AUTO');
-  const intervals = draftMarket === 'CRYPTO' ? cryptoIntervals : stockIntervals;
+  const intervals = draftMarket === 'CRYPTO' ? cryptoIntervals : draftMarket === 'FOREX' ? forexIntervals : stockIntervals;
 
   const readyData = useMemo(() => items.map((item) => states[watchlistKey(item)]?.data).filter(Boolean) as WatchlistMonitorSnapshot[], [items, states]);
   const buyCount = readyData.filter((item) => item.signal.decision === 'BUY').length;
@@ -82,14 +83,14 @@ export default function WatchlistPanel({ items, states, refreshing, lastRefresh,
       <div className="watch-add-card">
         <div className="watch-market-toggle">
           <button className={draftMarket === 'CRYPTO' ? 'active' : ''} onClick={() => setDraftMarket('CRYPTO')}>CRYPTO</button>
-          <button className={draftMarket === 'STOCK' ? 'active' : ''} onClick={() => { setDraftMarket('STOCK'); if (draftInterval === '4h') setDraftInterval('1d'); }}>STOCK VN</button>
+          <button className={draftMarket === 'STOCK' ? 'active' : ''} onClick={() => { setDraftMarket('STOCK'); if (draftInterval === '4h') setDraftInterval('1d'); }}>STOCK VN</button><button className={draftMarket === 'FOREX' ? 'active' : ''} onClick={() => setDraftMarket('FOREX')}>FOREX</button>
         </div>
         <div className="watch-add-row">
           <input
             value={draftSymbol}
             onChange={(event) => setDraftSymbol(event.target.value.toUpperCase())}
             onKeyDown={(event) => { if (event.key === 'Enter') submit(); }}
-            placeholder={draftMarket === 'CRYPTO' ? 'BTCUSDT, ETHUSDT…' : 'FPT, VNM, HPG…'}
+            placeholder={draftMarket === 'CRYPTO' ? 'BTCUSDT, ETHUSDT…' : draftMarket === 'FOREX' ? 'EURUSD, XAUUSD…' : 'FPT, VNM, HPG…'}
             autoCapitalize="characters"
             spellCheck={false}
           />
@@ -125,7 +126,7 @@ export default function WatchlistPanel({ items, states, refreshing, lastRefresh,
 
       <div className="watch-note">
         <span>i</span>
-        <p>V0.9.0 lưu Strategy Profile theo từng mã/timeframe. AUTO có thể đổi effective profile khi regime/volatility thay đổi; calibrated rate luôn backtest theo effective profile hiện tại. Monitoring khi app đang mở, chưa phải push notification nền. Calibrated rate chỉ hiện khi backtest đủ điều kiện và không phải cam kết xác suất thắng tương lai.</p>
+        <p>V0.10.0 lưu Strategy Profile theo từng mã/timeframe. AUTO có thể đổi effective profile khi regime/volatility thay đổi; calibrated rate luôn backtest theo effective profile hiện tại. Monitoring khi app đang mở, chưa phải push notification nền. Calibrated rate chỉ hiện khi backtest đủ điều kiện và không phải cam kết xác suất thắng tương lai.</p>
       </div>
     </section>
   );
@@ -137,7 +138,7 @@ function WatchCard({ item, state, onOpen, onRemove }: { item: WatchlistItem; sta
     return (
       <article className="watch-card pending">
         <button className="watch-card-main" onClick={onOpen}>
-          <div className="watch-card-title"><span>{item.market === 'CRYPTO' ? 'CRYPTO' : 'STOCK VN'}</span><strong>{item.symbol}</strong><em>{formatInterval(item.interval)} • {item.profile === 'AUTO' ? 'AUTO' : effectiveProfileLabel(item.profile)}</em></div>
+          <div className="watch-card-title"><span>{item.market === 'CRYPTO' ? 'CRYPTO' : item.market === 'FOREX' ? 'FOREX' : 'STOCK VN'}</span><strong>{item.symbol}</strong><em>{formatInterval(item.interval)} • {item.profile === 'AUTO' ? 'AUTO' : effectiveProfileLabel(item.profile)}</em></div>
           <p>{state.status === 'error' ? state.error || 'Không tải được dữ liệu' : state.status === 'loading' ? 'Đang phân tích tín hiệu…' : 'Chờ cập nhật dữ liệu'}</p>
         </button>
         <button className="watch-remove" onClick={onRemove} aria-label={`Xóa ${item.symbol}`}>×</button>
@@ -155,7 +156,7 @@ function WatchCard({ item, state, onOpen, onRemove }: { item: WatchlistItem; sta
     <article className={`watch-card ${decision}`}>
       <button className="watch-card-main" onClick={onOpen}>
         <div className="watch-card-top">
-          <div className="watch-card-title"><span>{data.market === 'CRYPTO' ? 'CRYPTO' : 'STOCK VN'}</span><strong>{data.symbol}</strong><em>{formatInterval(data.interval)} • {data.strategy.autoApplied ? `AUTO→${data.strategy.effectiveLabel}` : data.strategy.effectiveLabel}</em></div>
+          <div className="watch-card-title"><span>{data.market === 'CRYPTO' ? 'CRYPTO' : data.market === 'FOREX' ? 'FOREX' : 'STOCK VN'}</span><strong>{data.symbol}</strong><em>{formatInterval(data.interval)} • {data.strategy.autoApplied ? `AUTO→${data.strategy.effectiveLabel}` : data.strategy.effectiveLabel}</em></div>
           <div className={`watch-decision ${decision}`}><b>{data.signal.decision}</b><small>{priority}</small></div>
         </div>
         <div className="watch-price-row">

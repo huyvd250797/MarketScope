@@ -7,11 +7,11 @@ export const runtime = 'nodejs';
 export async function GET(request: NextRequest) {
   const marketParam = request.nextUrl.searchParams.get('market')?.toUpperCase();
   const q = request.nextUrl.searchParams.get('q') || '';
-  const market: MarketType = marketParam === 'STOCK' ? 'STOCK' : 'CRYPTO';
+  const market: MarketType = marketParam === 'STOCK' ? 'STOCK' : marketParam === 'FOREX' ? 'FOREX' : 'CRYPTO';
   const results = searchLocalSymbols(market, q, 8);
   const normalized = normalizeInputSymbol(market, q);
 
-  if (q.trim() && normalized && !results.some((item) => item.symbol === normalized)) {
+  if (market !== 'FOREX' && q.trim() && normalized && !results.some((item) => item.symbol === normalized)) {
     results.unshift({
       symbol: normalized,
       name: market === 'CRYPTO' ? `${normalized} (custom pair)` : `${normalized} (mã nhập tay)`,

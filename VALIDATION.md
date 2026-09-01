@@ -1,9 +1,9 @@
-# Validation — MarketScope V0.9.0
+# Validation — MarketScope V0.10.0
 
 ## Đã kiểm tra offline
 
-- Package version `0.9.0`.
-- Service Worker cache `marketscope-shell-v0.9.0`.
+- Package version `0.10.0`.
+- Service Worker cache `marketscope-shell-v0.10.0`.
 - Core analysis strict TypeScript: PASS.
 - Full TS/TSX semantic check bằng dependency stubs: PASS.
 - Strategy wiring smoke test: PASS cho AUTO / SHORT_TERM / SWING / MEDIUM_TERM / LONG_TERM.

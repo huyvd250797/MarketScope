@@ -1,11 +1,11 @@
-# Deploy MarketScope V0.9.0 lên Vercel
+# Deploy MarketScope V0.10.0 lên Vercel
 
 ## 1. Push source lên GitHub
 
 ```bash
 git init
 git add .
-git commit -m "MarketScope V0.9.0"
+git commit -m "MarketScope V0.10.0"
 git branch -M main
 git remote add origin <YOUR_GITHUB_REPO>
 git push -u origin main
@@ -51,4 +51,4 @@ Nếu chưa có SSI, app có thể dùng Yahoo Finance fallback khi `ALLOW_STOCK
 
 ## 6. PWA/cache
 
-Service Worker dùng cache `marketscope-shell-v0.9.0`. `/api/*` không bị cache bởi Service Worker để tránh hiển thị dữ liệu thị trường cũ.
+Service Worker dùng cache `marketscope-shell-v0.10.0`. `/api/*` không bị cache bởi Service Worker để tránh hiển thị dữ liệu thị trường cũ.

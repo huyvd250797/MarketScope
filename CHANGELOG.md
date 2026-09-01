@@ -1,6 +1,6 @@
 # Changelog
 
-## V0.9.0 — Strategy Profiles & Smart Analysis
+## V0.10.0 — Strategy Profiles & Smart Analysis
 
 ### Added
 - Strategy Profile: `AUTO`, `SHORT_TERM`, `SWING`, `MEDIUM_TERM`, `LONG_TERM`.
@@ -24,6 +24,16 @@
 - Signal Score không được hiển thị như win-rate.
 
 ### Changed
-- Package version `0.9.0`.
-- PWA cache `marketscope-shell-v0.9.0`.
-- Metadata/manifest/health version cập nhật V0.9.0.
+- Package version `0.10.0`.
+- PWA cache `marketscope-shell-v0.10.0`.
+- Metadata/manifest/health version cập nhật V0.10.0.
+
+## V0.10.0 – Forex & Multi-horizon Forecast UX
+- Thêm asset class FOREX với EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, NZDUSD, USDCAD, EURJPY, EURGBP, GBPJPY, AUDJPY.
+- Thêm XAUUSD/XAGUSD trong nhóm Metals để phân tích vàng/bạc mà không dùng Binance Futures.
+- Forex provider độc lập, hỗ trợ 15m/1h/4h/1D/1W; 4h được aggregate từ dữ liệu 1h.
+- Thêm Forecast Engine theo 3 horizon: ngắn/trung/dài hạn, trả direction, expected price, uncertainty range, probability và drivers.
+- Forecast là scenario-based, causal, không cam kết tương lai và không thay thế Entry/SL/TP guardrails.
+- Tái cấu trúc Analyze: Signal + Forecast ưu tiên; Technical/Backtest/Data Quality gom trong Phân tích chuyên sâu dạng accordion, không loại bỏ thông tin.
+- Watchlist và Positions hỗ trợ FOREX.
+- Data Quality hiểu đặc thù Forex không có centralized volume; VWAP dùng equal-weight typical-price proxy.
