@@ -1,39 +1,34 @@
 # Changelog
 
-## V0.10.0 — Strategy Profiles & Smart Analysis
+## V0.11.0 — Forecast Validation & Historical Accuracy
 
 ### Added
-- Strategy Profile: `AUTO`, `SHORT_TERM`, `SWING`, `MEDIUM_TERM`, `LONG_TERM`.
-- Smart Analysis đề xuất effective profile từ timeframe + regime + ADX + ATR + RSI.
-- Timeframe-fit, holding guide, confidence và rationale trên Analyze.
-- Profile-aware Signal Engine: weights, BUY threshold, Entry Zone, SL, TP1–TP3, chase guard.
-- Profile-aware Position Exit Planner: protection, trailing và Exit S/M/L.
-- Profile-aware Backtest/Calibration; cùng một backtest không trộn horizon.
-- Watchlist lưu profile riêng cho từng mã/timeframe.
-- Positions khóa effective profile tại lúc lưu vị thế.
-- Strategy Engine self-test trong System Health.
-
-### Migration
-- Position V0.8 trở về trước thiếu profile → `SWING`.
-- Watchlist V0.8 trở về trước thiếu profile → `SWING`.
-- `quantity` legacy vẫn giữ migration an toàn từ V0.7.
-
-### Guardrails
-- Spot-only / LONG-only / no leverage / no auto trade.
-- Data Quality Guard tiếp tục có quyền khóa Signal dù Strategy Engine đang bullish.
-- Signal Score không được hiển thị như win-rate.
+- Rolling causal Forecast Validation theo đúng market/symbol/timeframe/effective profile.
+- Direction Accuracy và Beta(2,2) calibrated direction accuracy.
+- Range Hit Rate.
+- Average/Median absolute forecast error.
+- Calibration Gap giữa raw directional probability và kết quả lịch sử.
+- Forecast confidence calibration theo historical sample size.
+- Historical metrics riêng cho SHORT / MEDIUM / LONG.
+- Tab History hoạt động thật.
+- Local Forecast History tối đa 180 snapshots.
+- Tự resolve forecast đã lưu khi đủ nến tương lai.
+- History dashboard: resolved/pending, direction accuracy, range hit, error theo horizon.
 
 ### Changed
-- Package version `0.10.0`.
-- PWA cache `marketscope-shell-v0.10.0`.
-- Metadata/manifest/health version cập nhật V0.10.0.
+- Forecast card hiển thị calibrated confidence làm chỉ số chính và vẫn giữ raw confidence.
+- Mỗi horizon hiển thị historical accuracy/range hit/sample count.
+- Service Worker cache bump `marketscope-shell-v0.11.0`.
+- Package/version metadata cập nhật 0.11.0.
 
-## V0.10.0 – Forex & Multi-horizon Forecast UX
-- Thêm asset class FOREX với EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, NZDUSD, USDCAD, EURJPY, EURGBP, GBPJPY, AUDJPY.
-- Thêm XAUUSD/XAGUSD trong nhóm Metals để phân tích vàng/bạc mà không dùng Binance Futures.
-- Forex provider độc lập, hỗ trợ 15m/1h/4h/1D/1W; 4h được aggregate từ dữ liệu 1h.
-- Thêm Forecast Engine theo 3 horizon: ngắn/trung/dài hạn, trả direction, expected price, uncertainty range, probability và drivers.
-- Forecast là scenario-based, causal, không cam kết tương lai và không thay thế Entry/SL/TP guardrails.
-- Tái cấu trúc Analyze: Signal + Forecast ưu tiên; Technical/Backtest/Data Quality gom trong Phân tích chuyên sâu dạng accordion, không loại bỏ thông tin.
-- Watchlist và Positions hỗ trợ FOREX.
-- Data Quality hiểu đặc thù Forex không có centralized volume; VWAP dùng equal-weight typical-price proxy.
+### Guardrails
+- Validation không dùng future candle tại origin.
+- Mẫu nhỏ shrink về 50% bằng Beta(2,2).
+- Historical accuracy không được mô tả như cam kết xác suất thắng tương lai.
+- Data Quality Guard vẫn ưu tiên cao hơn Forecast/Signal.
+
+## V0.10.0 — Forex & Multi-horizon Forecast UX
+- Bổ sung Forex/Metals, Forecast ngắn/trung/dài và progressive disclosure cho Analyze.
+
+## V0.9.0 — Strategy Profiles & Smart Analysis
+- AUTO / Ngắn hạn / Swing / Trung hạn / Dài hạn xuyên Signal, Backtest, Watchlist và Positions.

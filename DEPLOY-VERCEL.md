@@ -1,31 +1,26 @@
-# Deploy MarketScope V0.10.0 lên Vercel
+# Deploy MarketScope V0.11.0 lên Vercel
 
-## 1. Push source lên GitHub
+## 1. Push GitHub
 
 ```bash
-git init
 git add .
-git commit -m "MarketScope V0.10.0"
-git branch -M main
-git remote add origin <YOUR_GITHUB_REPO>
-git push -u origin main
+git commit -m "MarketScope V0.11.0 Forecast Validation"
+git push
 ```
 
-## 2. Import vào Vercel
-
-- Add New → Project → Import Git Repository.
-- Framework Preset: **Next.js**.
-- Build Command: để mặc định `next build` / `npm run build`.
+## 2. Vercel
+- Import repository.
+- Framework Preset: Next.js.
+- Build Command: `npm run build`.
+- Install Command: mặc định `npm install`.
 - **Output Directory: để trống**.
-- Không nhập `out` và không bật static export.
 
-## 3. Crypto
+Không nhập `out` và không bật static export.
 
-Binance Spot public market data không cần API key.
+## 3. Environment Variables cho Stock VN
+Crypto Binance public và Forex public adapter không cần secret.
 
-## 4. Stock VN
-
-Cấu hình trong Vercel → Settings → Environment Variables nếu dùng SSI:
+Nếu dùng SSI FastConnect:
 
 ```text
 STOCK_PROVIDER=AUTO
@@ -35,20 +30,15 @@ SSI_API_KEY=...
 SSI_API_SECRET=...
 ```
 
-Không commit credential thật vào GitHub.
+## 4. Sau deploy
+Kiểm tra:
+1. Crypto BTCUSDT.
+2. Stock VN FPT.
+3. Forex EURUSD và XAUUSD.
+4. Forecast card có Raw + Calibrated confidence.
+5. Forecast Validation có sample/accuracy khi đủ history.
+6. Tab History lưu forecast sau khi Analyze.
+7. `/api/*` không bị Service Worker cache.
 
-Nếu chưa có SSI, app có thể dùng Yahoo Finance fallback khi `ALLOW_STOCK_FALLBACK=true`. System Health sẽ đánh dấu môi trường fallback là `DEGRADED` theo chủ đích.
-
-## 5. Checklist sau deploy
-
-1. Analyze BTCUSDT 1h với AUTO và kiểm tra effective profile.
-2. Đổi lần lượt Ngắn hạn/Swing/Trung hạn/Dài hạn; xác nhận Entry/SL/TP thay đổi.
-3. Mở Backtest; profile hiển thị phải trùng effective profile.
-4. Lưu một Position; vào Positions kiểm tra profile được khóa.
-5. Thêm Watchlist với AUTO và một profile cố định.
-6. Settings → System Health: Strategy Profile Engine phải PASS.
-7. Kiểm tra Data Quality; stale/invalid data vẫn phải khóa BUY.
-
-## 6. PWA/cache
-
-Service Worker dùng cache `marketscope-shell-v0.10.0`. `/api/*` không bị cache bởi Service Worker để tránh hiển thị dữ liệu thị trường cũ.
+## 5. Lưu ý History
+Forecast History V0.11.0 lưu trong localStorage của browser/PWA hiện tại. Đổi thiết bị hoặc xóa dữ liệu trình duyệt sẽ mất local History. Cloud sync là phạm vi phiên bản production sau này.
