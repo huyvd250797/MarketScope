@@ -1,6 +1,7 @@
 import { analyzeTechnical } from '@/lib/analysis/technical';
 import { analyzeTradeSignal } from '@/lib/analysis/signal';
 import { backtestSignalEngine } from '@/lib/analysis/backtest';
+import { analyzeOpportunity } from '@/lib/analysis/opportunity';
 import { resolveStrategyProfile } from '@/lib/analysis/strategy';
 import { probeBinanceHealth } from '@/lib/market/binance';
 import { hasSsiCredentials } from '@/lib/market/provider';
@@ -90,6 +91,19 @@ function engineChecks(): HealthCheckItem[] {
     return `Backtest PASS • ${result.metrics.filledTrades} filled • ${result.status}.`;
   });
 
+  run('scanner', 'Opportunity Scanner Engine', () => {
+    const last = candles[candles.length - 1];
+    const snapshot = {
+      market: 'CRYPTO' as const, symbol: 'TESTUSDT', displayName: 'Scanner Self-test', exchange: 'SYNTH', provider: 'Synthetic', providerSymbol: 'TESTUSDT',
+      interval: '1h' as const, currency: 'USDT', currentPrice: last.close, previousClose: candles[candles.length - 2].close, change: last.close - candles[candles.length - 2].close,
+      changePercent: (last.close / candles[candles.length - 2].close - 1) * 100, dayHigh: last.high, dayLow: last.low, volume: last.volume, marketState: 'TEST',
+      dataAt: new Date(last.time * 1000).toISOString(), candles,
+    };
+    const result = analyzeOpportunity(snapshot, 'AUTO', { validationOrigins: 6 });
+    if (!Number.isFinite(result.opportunity.score) || result.opportunity.score < 0 || result.opportunity.score > 100) throw new Error('Opportunity Score self-test ngoài 0–100');
+    return `Scanner PASS • ${result.signal.decision} • opportunity ${result.opportunity.score}/100.`;
+  });
+
   return output;
 }
 
@@ -131,7 +145,7 @@ export async function getSystemHealth(): Promise<SystemHealthSnapshot> {
 
   return {
     generatedAt: new Date().toISOString(),
-    version: '0.11.0',
+    version: '0.12.0',
     overall,
     overallLabel: overall === 'HEALTHY' ? 'Hệ thống ổn định' : overall === 'DEGRADED' ? 'Hệ thống đang dùng chế độ suy giảm/fallback' : 'Có thành phần đang lỗi',
     stockProviderMode: mode,
@@ -141,6 +155,7 @@ export async function getSystemHealth(): Promise<SystemHealthSnapshot> {
     cachePolicies: [
       { endpoint: '/api/market/candles', policy: 'CRYPTO 10s / STOCK 30s / FOREX 30s', note: 'Browser gọi no-store; CDN có stale-while-revalidate ngắn. Data Quality luôn kiểm tra dataAt trước khi cho BUY.' },
       { endpoint: '/api/market/monitor', policy: 'CRYPTO 15s / STOCK 45s / FOREX 30s', note: 'Watchlist refresh 5 phút ở client; API không dùng cache dài.' },
+      { endpoint: '/api/market/scanner', policy: '30s + stale-while-revalidate 60s', note: 'Scanner quét theo yêu cầu, concurrency giới hạn và chạy Forecast Validation causal cho nhóm ứng viên tốt nhất.' },
       { endpoint: '/api/market/portfolio', policy: 'no-store', note: 'Giá vốn/số lượng không được cache hoặc lưu server.' },
       { endpoint: '/api/system/health', policy: 'no-store', note: 'Diagnostics luôn chạy mới khi mở/refresh Settings.' },
     ],
@@ -149,6 +164,7 @@ export async function getSystemHealth(): Promise<SystemHealthSnapshot> {
       'Yahoo Finance là fallback/unofficial; nếu đang được chọn thì overall được đánh DEGRADED dù endpoint vẫn hoạt động.',
       'Forex/Metals dùng provider riêng; Spot FX không có centralized volume nên VWAP dùng typical-price proxy.',
       'Strategy Profile Engine quyết định horizon/weights trước Signal/Backtest; Data Quality Guard của từng mã vẫn là lớp quyết định cuối cùng có cho phép phát Entry/SL/TP hay không.',
+      'Smart Scanner là lớp ranking/triage; Opportunity Score không thay thế Signal/Forecast/Backtest chi tiết ở Analyze.',
     ],
   };
 }

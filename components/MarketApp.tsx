@@ -12,12 +12,13 @@ import SystemHealthPanel from './SystemHealthPanel';
 import StrategyProfileSelector from './StrategyProfileSelector';
 import ForecastPanel from './ForecastPanel';
 import ForecastHistoryPanel from './ForecastHistoryPanel';
+import OpportunityScannerPanel from './OpportunityScannerPanel';
 import { analyzePositionExit } from '@/lib/analysis/position';
 import { createForecastHistoryRecord, readForecastHistory, resolveForecastRecords, upsertForecastRecord, writeForecastHistory } from '@/lib/analysis/forecastHistory';
 import type { ForecastHistoryRecord, Interval, MarketSnapshot, MarketType, PositionExitAnalysis, SavedPosition, StrategyProfileKey, SymbolItem, WatchlistMonitorSnapshot } from '@/lib/market/types';
 
 type ThemePreference = 'auto' | 'light' | 'dark';
-type NavKey = 'analyze' | 'watchlist' | 'positions' | 'history' | 'settings';
+type NavKey = 'analyze' | 'scanner' | 'watchlist' | 'positions' | 'history' | 'settings';
 
 type ApiError = { error?: string; correlationId?: string };
 
@@ -45,6 +46,7 @@ export default function MarketApp() {
   const [themePref, setThemePref] = useState<ThemePreference>('auto');
   const [dark, setDark] = useState(false);
   const [nav, setNav] = useState<NavKey>('analyze');
+  const [moreOpen, setMoreOpen] = useState(false);
   const [overlays, setOverlays] = useState<ChartOverlays>({ ema20: true, ema50: true, ema200: true, vwap: true, signals: true, position: false });
   const [recent, setRecent] = useState<Record<MarketType, string[]>>({ CRYPTO: [], STOCK: [], FOREX: [] });
   const [savedPositions, setSavedPositions] = useState<SavedPosition[]>([]);
@@ -416,6 +418,17 @@ export default function MarketApp() {
     setNav('analyze');
   };
 
+  const openScannerItem = (targetMarket: MarketType, targetSymbol: string, targetInterval: Interval, targetProfile: StrategyProfileKey) => {
+    setMarket(targetMarket);
+    setSymbol(targetSymbol);
+    setQuery(targetSymbol);
+    setInterval(targetInterval);
+    setStrategyProfile(targetProfile);
+    localStorage.setItem('marketscope-strategy-profile', targetProfile);
+    setMoreOpen(false);
+    setNav('analyze');
+  };
+
   const toggleCurrentWatchlist = () => {
     if (!snapshot) return;
     const item: WatchlistItem = { market, symbol: snapshot.symbol, interval, profile: strategyProfile, addedAt: new Date().toISOString() };
@@ -437,9 +450,9 @@ export default function MarketApp() {
           <div>
             <div className="brand-row">
               <strong>MarketScope</strong>
-              <span className="version-badge">V0.11.0</span>
+              <span className="version-badge">V0.12.0</span>
             </div>
-            <span className="brand-sub">Crypto Spot • Stock VN • Forex • Smart Forecast</span>
+            <span className="brand-sub">Crypto Spot • Stock VN • Forex • Smart Scanner</span>
           </div>
         </div>
         <button className="theme-button" onClick={() => setNav('settings')} aria-label="Cài đặt giao diện">
@@ -450,6 +463,13 @@ export default function MarketApp() {
       <section className="content">
         {nav === 'settings' ? (
           <SettingsPanel themePref={themePref} onTheme={setTheme} onBack={() => setNav('analyze')} />
+        ) : nav === 'scanner' ? (
+          <OpportunityScannerPanel
+            defaultProfile={strategyProfile}
+            onOpen={openScannerItem}
+            onAddWatchlist={addWatchlistItem}
+            onBack={() => setNav('analyze')}
+          />
         ) : nav === 'watchlist' ? (
           <WatchlistPanel
             items={watchlist}
@@ -632,24 +652,43 @@ export default function MarketApp() {
             <section className="roadmap-card">
               <div className="roadmap-icon">↗</div>
               <div>
-                <strong>V0.11.0 • Forecast Validation & Historical Accuracy</strong>
-                <p>Kiểm chứng Forecast theo lịch sử causal, hiệu chỉnh confidence và lưu Forecast History để tự đối chiếu đúng/sai theo từng horizon.</p>
+                <strong>V0.12.0 • Smart Opportunity Scanner</strong>
+                <p>Tự quét nhiều mã Crypto Spot, Stock VN và Forex; xếp hạng theo Signal, Forecast, Historical Accuracy, Risk/Reward và Data Quality.</p>
               </div>
             </section>
 
-            <p className="disclaimer">MarketScope V0.11.0: Forecast confidence được hiệu chỉnh bằng historical validation cùng mã/timeframe/profile khi đủ dữ liệu. Crypto vẫn Spot/position LONG không leverage; Forex chỉ phân tích, không tự đặt lệnh; Data Quality Guard vẫn có quyền khóa tín hiệu.</p>
+            <p className="disclaimer">MarketScope V0.12.0: Smart Scanner chỉ dùng để ưu tiên cơ hội cần xem trước; Analyze vẫn là nơi kiểm tra Entry/SL/TP, Forecast, Backtest và Data Quality. Crypto giữ Spot/LONG-only không leverage; Forex chỉ phân tích, không tự đặt lệnh.</p>
           </>
         )}
       </section>
 
+      {moreOpen && <MoreSheet
+        onClose={() => setMoreOpen(false)}
+        onHistory={() => { setMoreOpen(false); setNav('history'); }}
+        onSettings={() => { setMoreOpen(false); setNav('settings'); }}
+      />}
+
       <nav className="bottom-nav" aria-label="Điều hướng chính">
-        <NavButton active={nav === 'analyze'} icon="⌁" label="Analyze" onClick={() => setNav('analyze')} />
-        <NavButton active={nav === 'watchlist'} icon="☆" label="Watchlist" onClick={() => setNav('watchlist')} />
-        <NavButton active={nav === 'positions'} icon="◎" label="Positions" onClick={() => setNav('positions')} />
-        <NavButton active={nav === 'history'} icon="◷" label="History" onClick={() => setNav('history')} />
-        <NavButton active={nav === 'settings'} icon="⚙" label="Settings" onClick={() => setNav('settings')} />
+        <NavButton active={nav === 'analyze'} icon="⌁" label="Analyze" onClick={() => { setMoreOpen(false); setNav('analyze'); }} />
+        <NavButton active={nav === 'scanner'} icon="⌕" label="Scanner" onClick={() => { setMoreOpen(false); setNav('scanner'); }} />
+        <NavButton active={nav === 'watchlist'} icon="☆" label="Watchlist" onClick={() => { setMoreOpen(false); setNav('watchlist'); }} />
+        <NavButton active={nav === 'positions'} icon="◎" label="Positions" onClick={() => { setMoreOpen(false); setNav('positions'); }} />
+        <NavButton active={moreOpen || nav === 'history' || nav === 'settings'} icon="•••" label="Thêm" onClick={() => setMoreOpen((value) => !value)} />
       </nav>
     </main>
+  );
+}
+
+function MoreSheet({ onClose, onHistory, onSettings }: { onClose: () => void; onHistory: () => void; onSettings: () => void }) {
+  return (
+    <div className="more-sheet-backdrop" onClick={onClose}>
+      <section className="more-sheet" onClick={(event) => event.stopPropagation()} aria-label="Thêm chức năng">
+        <div className="more-sheet-handle" />
+        <div className="more-sheet-head"><strong>Thêm</strong><button onClick={onClose} aria-label="Đóng">×</button></div>
+        <button className="more-sheet-item" onClick={onHistory}><span>◷</span><div><strong>History</strong><small>Forecast History & Historical Accuracy</small></div><b>›</b></button>
+        <button className="more-sheet-item" onClick={onSettings}><span>⚙</span><div><strong>Settings</strong><small>Theme, Provider Health & Diagnostics</small></div><b>›</b></button>
+      </section>
+    </div>
   );
 }
 
@@ -669,7 +708,7 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
   return (
     <section className="panel-page">
       <button className="back-button" onClick={onBack}>← Quay lại</button>
-      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.11.0 • Forecast Validation • Historical Accuracy • Forex.</p></div>
+      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.12.0 • Smart Scanner • Forecast Validation • Forex.</p></div>
       <div className="settings-card">
         <strong>Giao diện</strong>
         <p>Dark / Light / Auto được lưu trên thiết bị.</p>
@@ -689,11 +728,11 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
       </div>
       <div className="settings-card">
         <strong>Watchlist notifications</strong>
-        <p>Bật/tắt quyền thông báo tại module Watchlist. V0.11.0 chỉ kiểm tra khi Watchlist đang mở; push nền/cloud scheduler chưa bật mặc định.</p>
+        <p>Bật/tắt quyền thông báo tại module Watchlist. V0.12.0 vẫn chỉ kiểm tra khi Watchlist đang mở; Smart Scanner là quét theo yêu cầu, chưa phải cloud scanner nền 24/7.</p>
       </div>
       <div className="settings-card muted-card">
         <strong>Phiên bản</strong>
-        <p>MarketScope V0.11.0 — Forecast Validation & Historical Accuracy.</p>
+        <p>MarketScope V0.12.0 — Smart Opportunity Scanner • Mobile-first UX.</p>
       </div>
     </section>
   );

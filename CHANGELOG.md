@@ -1,5 +1,33 @@
 # Changelog
 
+## V0.12.0 — Smart Opportunity Scanner
+
+### Added
+- Module Smart Opportunity Scanner cho Crypto Spot, Stock VN và Forex/Metals.
+- Opportunity Score 0–100: Signal 32% + Forecast 20% + Historical 18% + R:R 15% + Data Quality 15%.
+- Scanner 2 tầng: preliminary scan → causal Forecast Validation shortlist → final ranking.
+- Preset Top cơ hội / Gần Entry / Forecast mạnh / Accuracy tốt / R:R tốt / Mới chuyển BUY.
+- Filter HEALTHY-only, BUY-only, minimum Opportunity, Accuracy và R:R.
+- QUICK/WIDE scan scope.
+- XAUUSD được ưu tiên trong Forex Scanner universe.
+- Opportunity Scanner Engine self-test trong System Health.
+
+### Mobile UX
+- Bottom navigation tối ưu thành Analyze / Scanner / Watchlist / Positions / Thêm.
+- History + Settings chuyển vào More bottom sheet, không xóa chức năng.
+- Scanner dùng card ranking mobile-first, sticky chip controls và progressive details.
+- Touch target action >= 44px; KPI chuyển 2×2 ở màn nhỏ.
+
+### Guardrails
+- Data Quality không đạt → Scanner không được đẩy mã lên đầu bảng.
+- WAIT/AVOID bị giới hạn Opportunity Score.
+- Opportunity Score không phải win rate/xác suất thắng.
+- Scanner không auto trade; Crypto vẫn Spot/LONG-only.
+
+### Version
+- Package `0.12.0`.
+- Service Worker cache `marketscope-shell-v0.12.0`.
+
 ## V0.11.0 — Forecast Validation & Historical Accuracy
 
 ### Added

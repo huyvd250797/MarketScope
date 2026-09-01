@@ -2,8 +2,8 @@ import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'MarketScope V0.11.0',
-  description: 'Mobile-first Crypto Spot, Vietnam Stock and Forex analysis with Forecast Validation, Historical Accuracy, Strategy Profiles, Data Quality Guard and calibrated multi-horizon Forecast.',
+  title: 'MarketScope V0.12.0',
+  description: 'Mobile-first Crypto Spot, Vietnam Stock and Forex analysis with Smart Opportunity Scanner, Forecast Validation, Strategy Profiles, Data Quality Guard and calibrated multi-horizon Forecast.',
   manifest: '/manifest.webmanifest',
   applicationName: 'MarketScope',
   appleWebApp: {

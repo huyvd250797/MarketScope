@@ -1,75 +1,106 @@
-# MarketScope V0.11.0 — Forecast Validation & Historical Accuracy
+# MarketScope V0.12.0 — Smart Opportunity Scanner
 
-MarketScope là web app mobile-first phân tích **Crypto Spot**, **Stock VN** và **Forex/Metals**. V0.11.0 nâng trực tiếp từ V0.10.0 và giữ nguyên Technical Analysis, Strategy Profiles, Entry/SL/TP, Position/Exit, Backtest Calibration, Watchlist, Portfolio Risk, Data Quality Guard và Multi-horizon Forecast.
+MarketScope là web app mobile-first phân tích **Crypto Spot**, **Stock VN** và **Forex/Metals**. V0.12.0 nâng trực tiếp từ V0.11.0 và giữ nguyên Technical Analysis, Strategy Profiles, Entry/SL/TP, Position/Exit, Backtest Calibration, Forecast Validation, Watchlist, Portfolio Risk và Data Quality Guard.
 
-## Điểm mới V0.11.0
+## Điểm mới V0.12.0
 
-### 1. Rolling Forecast Validation
-Mỗi lần Analyze, nếu dữ liệu đủ chuẩn, server chạy rolling validation causal trên lịch sử của đúng:
+### 1. Smart Opportunity Scanner
+Module **Scanner** tự quét nhiều mã thay vì yêu cầu nhập từng mã thủ công.
 
-- market
-- symbol
-- timeframe
-- effective Strategy Profile
+Universe mặc định được ưu tiên theo nhóm phổ biến:
 
-Mỗi forecast lịch sử chỉ sử dụng dữ liệu có tại origin, không nhìn nến tương lai. Sau đó hệ thống đối chiếu giá thật ở đúng horizon.
+- Crypto Spot: BTCUSDT, ETHUSDT, SOLUSDT, BNBUSDT, XRPUSDT, LINKUSDT, AVAXUSDT, SUIUSDT…
+- Stock VN: FPT, HPG, VNM, VCB, MBB, TCB, MWG, SSI, DGC…
+- Forex/Metals: XAUUSD, EURUSD, GBPUSD, USDJPY, USDCHF, AUDUSD, USDCAD, GBPJPY…
 
-Các metric mới:
+Scanner hỗ trợ:
 
-- Direction Accuracy
-- Beta(2,2) calibrated Direction Accuracy
-- Range Hit Rate
-- Average Absolute Forecast Error
-- Median Absolute Forecast Error
-- Raw Probability trung bình
-- Calibration Gap
-- Sample count theo SHORT / MEDIUM / LONG
+- `ALL / CRYPTO / STOCK VN / FOREX`
+- `AUTO / Ngắn hạn / Swing / Trung hạn / Dài hạn`
+- phạm vi `Nhanh / Mở rộng`
+- Top cơ hội
+- Gần Entry
+- Forecast mạnh
+- Historical Accuracy tốt
+- Risk/Reward tốt
+- Mới chuyển BUY trên thiết bị hiện tại
 
-### 2. Forecast Confidence Calibration
-Forecast hiện giữ cả:
+### 2. Opportunity Score 0–100
+Opportunity Score dùng để **xếp hạng ưu tiên xem**, không phải xác suất thắng.
 
-- Raw confidence
-- Calibrated confidence
-- Raw directional probability
-- Calibrated directional probability theo từng horizon
+Trọng số mặc định:
 
-Khi mẫu ít, historical accuracy được shrink về 50% để tránh hiển thị xác suất quá đẹp từ vài mẫu nhỏ.
+- Signal Engine: 32%
+- Forecast: 20%
+- Historical Accuracy: 18%
+- Risk/Reward: 15%
+- Data Quality: 15%
 
-### 3. History trở thành module thật
-Tab **History** không còn Coming Soon.
+Guardrails:
 
-Forecast người dùng thực sự xem được lưu local trên thiết bị và gồm:
+- Data Quality không cho signal → score bị khóa thấp.
+- `AVOID` không thể đứng đầu chỉ nhờ Forecast đẹp.
+- `WAIT` bị giới hạn score.
+- R:R TP1 thấp bị hạ thứ hạng.
+- Final Top cards đều đi qua Forecast Validation causal ở tầng thứ hai của Scanner.
 
-- mã / market / timeframe
+### 3. Scanner 2 tầng để tối ưu Vercel
+Để tránh chạy historical validation nặng cho toàn bộ universe:
+
+1. Quét nhanh toàn universe bằng Technical + Signal + Backtest + Forecast.
+2. Shortlist các ứng viên tốt nhất.
+3. Chạy Forecast Validation causal cho shortlist.
+4. Tính lại Opportunity Score và xếp hạng cuối.
+
+Concurrency provider được giới hạn để giảm burst request tới Binance/SSI/Yahoo.
+
+### 4. Mobile-first UX
+Bottom navigation được tối ưu còn 5 mục:
+
+- Analyze
+- Scanner
+- Watchlist
+- Positions
+- Thêm
+
+`History` và `Settings` được đưa vào **More bottom sheet**, không bị xóa chức năng.
+
+Scanner trên mobile dùng:
+
+- filter chips cuộn ngang
+- sticky control bar
+- card ranking thay vì table rộng
+- KPI 2×2 ở màn nhỏ
+- metric grid gọn
+- nút `Phân tích` / `Watchlist` tối thiểu 44px
+- detail chỉ bung khi người dùng muốn xem lý do xếp hạng
+
+### 5. Liên kết Scanner → Analyze
+Bấm **Phân tích** trên một opportunity sẽ mở Analyze và giữ đúng:
+
+- Market
+- Symbol
+- Timeframe
 - Strategy Profile
-- origin price/time
-- bias + confidence
-- forecast ngắn / trung / dài
-- expected price
-- probability range
 
-Khi app tải lại đúng mã + timeframe và đã có đủ nến tương lai, record tự resolve thành:
+Bấm **☆ Watchlist** để đưa cùng mã/timeframe/profile vào Watchlist.
 
-- đúng/sai hướng
-- giá thực tế
-- range hit/miss
-- forecast error
+## Những chức năng giữ nguyên
 
-History có thống kê tổng và tách riêng SHORT / MEDIUM / LONG.
-
-## Guardrails
-
-- Historical accuracy không phải cam kết forecast tiếp theo sẽ đúng.
-- Forecast Validation chỉ so sánh trong cùng mã/timeframe/profile.
-- Data Quality Guard vẫn có quyền khóa phân tích/tín hiệu.
-- Crypto vẫn Spot-only, không Futures/leverage.
-- Forecast History hiện lưu localStorage, chưa cloud sync.
-
-## Market Data
-
-- Crypto Spot: Binance public API.
-- Stock VN: SSI FastConnect khi có credentials; fallback provider theo cấu hình hiện có.
-- Forex/Metals: Yahoo FX/Metals adapter, gồm EURUSD, GBPUSD, USDJPY, XAUUSD, XAGUSD và các cặp phổ biến.
+- Crypto Spot only, không Futures/leverage.
+- Stock VN với SSI FastConnect + fallback theo cấu hình.
+- Forex/Metals gồm XAUUSD/XAGUSD.
+- EMA/RSI/MACD/ADX/ATR/VWAP.
+- Market Regime.
+- BUY / WAIT / AVOID.
+- Entry Zone / SL / TP1–TP3 / R:R.
+- Position / Exit Planner.
+- Portfolio & Risk Management.
+- Backtest & calibrated win rate.
+- Multi-horizon Forecast.
+- Forecast Validation & Forecast History.
+- Data Quality / Provider Diagnostics / System Health.
+- PWA + Dark/Light/Auto.
 
 ## Chạy local
 
@@ -87,6 +118,6 @@ npm run build
 
 ## Deploy Vercel
 
-Framework: Next.js. Không cấu hình `output: "export"`. **Output Directory để trống**.
+Framework: **Next.js**. Không dùng `output: "export"`. **Output Directory để trống**.
 
-Xem thêm `DEPLOY-VERCEL.md` và `VALIDATION.md`.
+Xem `DEPLOY-VERCEL.md` và `VALIDATION.md`.
