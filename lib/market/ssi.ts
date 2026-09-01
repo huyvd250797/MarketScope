@@ -66,7 +66,7 @@ export class SsiFastConnectProvider implements MarketProvider {
   }
 
   async getSnapshot(symbol: string, interval: Interval): Promise<MarketSnapshot> {
-    if (interval === '4h') throw new Error('SSI FastConnect không có nến 4h trực tiếp trong V0.11.0');
+    if (interval === '4h') throw new Error('SSI FastConnect không có nến 4h trực tiếp trong V0.12.0');
 
     const { Auth, Data } = await import('@ssi.developer/ssi-sdk');
     const credentials = this.credentials();

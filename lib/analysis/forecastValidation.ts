@@ -89,13 +89,14 @@ export function validateForecastHistory(
   market: MarketType,
   interval: Interval,
   profile: EffectiveStrategyProfile,
+  options: { maxOrigins?: number } = {},
 ): ForecastValidationResult {
   const closed = candles.length > 1 ? candles.slice(0, -1) : candles;
   const warmup = 220;
   const maxHorizonBars = interval === '15m' ? 40 : interval === '1h' || interval === '4h' ? 72 : interval === '1d' ? 60 : 36;
   const lastOrigin = closed.length - maxHorizonBars - 1;
   const eligible = Math.max(0, lastOrigin - warmup + 1);
-  const maxOrigins = 36;
+  const maxOrigins = Math.max(6, Math.min(36, options.maxOrigins ?? 36));
   const step = Math.max(1, Math.ceil(eligible / maxOrigins));
   const samples: ForecastValidationSample[] = [];
   let origins = 0;

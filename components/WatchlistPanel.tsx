@@ -126,7 +126,7 @@ export default function WatchlistPanel({ items, states, refreshing, lastRefresh,
 
       <div className="watch-note">
         <span>i</span>
-        <p>V0.11.0 lưu Strategy Profile theo từng mã/timeframe. AUTO có thể đổi effective profile khi regime/volatility thay đổi; calibrated rate luôn backtest theo effective profile hiện tại. Monitoring khi app đang mở, chưa phải push notification nền. Calibrated rate chỉ hiện khi backtest đủ điều kiện và không phải cam kết xác suất thắng tương lai.</p>
+        <p>V0.12.0 lưu Strategy Profile theo từng mã/timeframe. AUTO có thể đổi effective profile khi regime/volatility thay đổi; calibrated rate luôn backtest theo effective profile hiện tại. Monitoring khi app đang mở, chưa phải push notification nền. Calibrated rate chỉ hiện khi backtest đủ điều kiện và không phải cam kết xác suất thắng tương lai.</p>
       </div>
     </section>
   );

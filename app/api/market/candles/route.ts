@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Vui lòng nhập mã tài sản', correlationId }, { status: 400 });
   }
   if (market === 'STOCK' && interval === '4h') {
-    return NextResponse.json({ error: 'Chứng khoán V0.11.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
+    return NextResponse.json({ error: 'Chứng khoán V0.12.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
   }
 
   try {

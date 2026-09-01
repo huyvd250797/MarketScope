@@ -134,7 +134,7 @@ export default function PositionsWorkspace(props: Props) {
         <div className="positions-empty compact-empty"><span>◎</span><strong>Chưa có vị thế đã lưu</strong><p>Chọn mã, nhập giá đã mua và bấm “Phân tích vị thế”. Vị thế sẽ được lưu cục bộ trên thiết bị.</p></div>
       )}
 
-      <div className="settings-card muted-card"><strong>Phạm vi Positions V0.11.0</strong><p>Mỗi vị thế lưu effective Strategy Profile tại thời điểm phân tích. Exit Planner dùng đúng profile đó cho mốc bảo vệ và horizon; Data Quality Guard vẫn được giữ nguyên. Giá vốn + số lượng + profile chỉ lưu localStorage.</p></div>
+      <div className="settings-card muted-card"><strong>Phạm vi Positions V0.12.0</strong><p>Mỗi vị thế lưu effective Strategy Profile tại thời điểm phân tích. Exit Planner dùng đúng profile đó cho mốc bảo vệ và horizon; Data Quality Guard vẫn được giữ nguyên. Giá vốn + số lượng + profile chỉ lưu localStorage.</p></div>
     </section>
   );
 }

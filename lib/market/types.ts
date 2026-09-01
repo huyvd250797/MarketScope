@@ -536,6 +536,73 @@ export type WatchlistMonitorSnapshot = {
   warning?: string;
 };
 
+
+export type ScannerMarketFilter = 'ALL' | MarketType;
+export type ScannerScope = 'QUICK' | 'WIDE';
+export type OpportunityPreset = 'TOP' | 'NEAR_ENTRY' | 'FORECAST' | 'ACCURACY' | 'RISK_REWARD' | 'NEW_BUY';
+export type OpportunityGrade = 'A' | 'B' | 'C' | 'WATCH' | 'BLOCKED';
+
+export type OpportunityScannerItem = {
+  market: MarketType;
+  symbol: string;
+  displayName: string;
+  exchange: string;
+  provider: string;
+  interval: Interval;
+  currency: string;
+  currentPrice: number;
+  changePercent: number | null;
+  dataAt: string;
+  strategy: StrategyProfileAnalysis;
+  regime: WatchlistMonitorSnapshot['regime'];
+  signal: WatchlistMonitorSnapshot['signal'];
+  calibration: WatchlistMonitorSnapshot['calibration'];
+  quality: DataQualityReport;
+  forecast: {
+    overallBias: PriceForecast['overallBias'];
+    overallLabel: string;
+    rawConfidence: number;
+    calibratedConfidence: number;
+    directionProbability: number;
+    horizon: ForecastHorizon;
+    historicalDirectionAccuracy: number | null;
+    historicalRangeHitRate: number | null;
+    historicalSamples: number;
+  };
+  opportunity: {
+    score: number;
+    grade: OpportunityGrade;
+    label: string;
+    riskReward: number | null;
+    nearEntry: boolean;
+    distanceFromEntryPercent: number | null;
+    components: {
+      signal: number;
+      forecast: number;
+      historical: number;
+      riskReward: number;
+      dataQuality: number;
+    };
+    reasons: string[];
+    blockers: string[];
+  };
+  warning?: string;
+};
+
+export type OpportunityScannerResponse = {
+  generatedAt: string;
+  marketFilter: ScannerMarketFilter;
+  requestedProfile: StrategyProfileKey;
+  scope: ScannerScope;
+  universeSize: number;
+  scannedCount: number;
+  failedCount: number;
+  durationMs: number;
+  items: OpportunityScannerItem[];
+  errors: Array<{ market: MarketType; symbol: string; message: string }>;
+  methodology: string[];
+};
+
 export type SavedPosition = {
   market: MarketType;
   symbol: string;
