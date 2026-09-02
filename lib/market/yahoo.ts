@@ -108,7 +108,7 @@ export class YahooVietnamStockProvider implements MarketProvider {
 
   async getSnapshot(symbol: string, interval: Interval): Promise<MarketSnapshot> {
     if (interval === '4h') {
-      throw new Error('Chứng khoán V0.12.0 chưa hỗ trợ timeframe 4h');
+      throw new Error('Chứng khoán V0.13.0 chưa hỗ trợ timeframe 4h');
     }
     const cfg = intervalMap[interval];
     let result: YahooResult | undefined;

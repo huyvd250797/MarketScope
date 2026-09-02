@@ -1,55 +1,35 @@
-# Validation — MarketScope V0.12.0
+# Validation — MarketScope V0.13.0
 
-## Version/config
+## PASS
+- Core API + analysis + monitoring strict TypeScript check bằng TypeScript 5.8.3.
+- Full TS/TSX semantic check offline bằng validation stubs cho Next/React/Lightweight Charts/SSI.
+- Alert Engine smoke test:
+  - WAIT → BUY.
+  - Entry Zone transition.
+  - Forecast BEARISH → BULLISH.
+  - dedupe trong cooldown.
+  - retrigger sau cooldown.
+- Scanner Alert smoke test:
+  - WAIT → BUY.
+  - Opportunity vượt threshold.
+  - Opportunity tăng >= 15.
+  - lọt Top 3.
+  - Forecast đảo hướng.
+- Portfolio Alert smoke test:
+  - HOLD → EXIT_RISK = CRITICAL.
+  - Data HEALTHY → STALE_DATA = CRITICAL.
+- /api/market/monitor đã có Forecast compact trong WatchlistMonitorSnapshot.
+- Không dùng output: "export".
+- Không tạo thư mục `out`.
+- Service Worker cache version V0.13.0 và không cache `/api/*`.
 
-- Package version: `0.12.0`.
-- Service Worker cache: `marketscope-shell-v0.12.0`.
-- Không dùng `output: "export"`.
-- Vercel Output Directory phải để trống.
+## Full npm build
+Đã thử `npm install --no-audit --no-fund` trong sandbox nhưng npm registry timeout trước khi cài dependency. Không giữ lại `node_modules` hay `package-lock.json` cài dở trong source.
 
-## TypeScript checks
-
-- Core `lib/**/*.ts + app/api/**/*.ts`: **PASS** với TypeScript 5.8.3 và temporary dependency stubs.
-- Full TS/TSX semantic check: **PASS** với TypeScript 5.8.3 và temporary Next/React/Lightweight Charts stubs; `noImplicitAny` được tắt riêng cho stub pass vì stub JSX không cung cấp event contextual typing như `@types/react` thật.
-- Temporary stubs/config không được đóng gói trong ZIP cuối.
-
-## Scanner guardrails
-
-- Opportunity Score luôn 0–100.
-- Data Quality `signalAllowed=false` → Opportunity Score cap thấp.
-- `AVOID` bị cap và không thể thành grade A/B.
-- `WAIT` bị cap dưới nhóm BUY ưu tiên.
-- R:R thấp hạ Opportunity Score.
-- Opportunity Score không được mô tả là win rate/xác suất thắng.
-- Final Scanner result chỉ lấy từ shortlist đã chạy Forecast Validation causal.
-
-## Scanner performance design
-
-- `QUICK`: universe nhỏ hơn, validation origins thấp hơn.
-- `WIDE`: universe mở rộng, validation origins cao hơn.
-- Provider scan concurrency: `3`.
-- Forecast Validation shortlist concurrency: `2`.
-- Final result limit: 3–12.
-- `XAUUSD` được ưu tiên trong Forex scanner universe.
-
-## Mobile UX checks
-
-- Bottom nav: 5 touch targets.
-- Scanner card single-column trên mobile, 2 columns ở desktop >= 760px.
-- KPI scanner chuyển 2×2 ở <= 520px.
-- Filter/profile/preset dùng horizontal scroll, không ép co chữ.
-- Action button tối thiểu 44px.
-- History và Settings vẫn tồn tại qua More bottom sheet.
-- Analyze không bị nhét thêm bảng Scanner.
-
-## Existing regression areas
-
-- Forecast Validation causal vẫn hỗ trợ SHORT/MEDIUM/LONG.
-- Watchlist/Positions/History localStorage schema không bị thay đổi breaking.
-- Crypto vẫn Spot/LONG-only.
-- Forex không dùng Binance Spot.
-- Data Quality Guard vẫn ưu tiên hơn Signal/Scanner.
-
-## Full production build
-
-Sandbox có thể không truy cập được npm registry. Nếu `npm install` không tải được dependency thì full `next build` cần chạy trên Vercel/CI hoặc máy local có mạng. Source không được giữ `node_modules`/package-lock cài dở sau validation thất bại.
+## Runtime guardrails
+- Background monitor chỉ chạy khi `document.visibilityState === 'visible'`.
+- Watchlist concurrency giữ batch 3.
+- Scanner endpoint giữ concurrency/two-stage ranking từ V0.12.0.
+- Portfolio endpoint giữ concurrency 3 và giới hạn 30 vị thế.
+- Alert history giới hạn 160 event.
+- Browser notifications chỉ phát sau dedupe/cooldown.

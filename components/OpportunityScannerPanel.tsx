@@ -17,6 +17,7 @@ type Props = {
   defaultProfile: StrategyProfileKey;
   onOpen: (market: MarketType, symbol: string, interval: Interval, profile: StrategyProfileKey) => void;
   onAddWatchlist: (market: MarketType, symbol: string, interval: Interval, profile: StrategyProfileKey) => void;
+  onResults?: (data: OpportunityScannerResponse) => void;
   onBack: () => void;
 };
 
@@ -61,7 +62,7 @@ function writeCurrentDecisions(items: OpportunityScannerItem[]) {
   localStorage.setItem('marketscope-scanner-decisions', JSON.stringify(current));
 }
 
-export default function OpportunityScannerPanel({ defaultProfile, onOpen, onAddWatchlist, onBack }: Props) {
+export default function OpportunityScannerPanel({ defaultProfile, onOpen, onAddWatchlist, onResults, onBack }: Props) {
   const [marketFilter, setMarketFilter] = useState<ScannerMarketFilter>('ALL');
   const [profile, setProfile] = useState<StrategyProfileKey>(defaultProfile || 'AUTO');
   const [scope, setScope] = useState<ScannerScope>('QUICK');
@@ -98,12 +99,13 @@ export default function OpportunityScannerPanel({ defaultProfile, onOpen, onAddW
       setNewBuyKeys(changed);
       writeCurrentDecisions(payload.items);
       setData(payload);
+      onResults?.(payload);
     } catch (err) {
       if (requestId === requestRef.current) setError(err instanceof Error ? err.message : 'Không thể chạy Scanner');
     } finally {
       if (requestId === requestRef.current) setLoading(false);
     }
-  }, [marketFilter, profile, scope]);
+  }, [marketFilter, profile, scope, onResults]);
 
   useEffect(() => { void refresh(); }, [refresh]);
 
