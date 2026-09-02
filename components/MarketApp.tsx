@@ -13,12 +13,18 @@ import StrategyProfileSelector from './StrategyProfileSelector';
 import ForecastPanel from './ForecastPanel';
 import ForecastHistoryPanel from './ForecastHistoryPanel';
 import OpportunityScannerPanel from './OpportunityScannerPanel';
+import AlertCenterPanel from './AlertCenterPanel';
 import { analyzePositionExit } from '@/lib/analysis/position';
 import { createForecastHistoryRecord, readForecastHistory, resolveForecastRecords, upsertForecastRecord, writeForecastHistory } from '@/lib/analysis/forecastHistory';
-import type { ForecastHistoryRecord, Interval, MarketSnapshot, MarketType, PositionExitAnalysis, SavedPosition, StrategyProfileKey, SymbolItem, WatchlistMonitorSnapshot } from '@/lib/market/types';
+import type { ForecastHistoryRecord, Interval, MarketSnapshot, MarketType, OpportunityScannerResponse, PortfolioRiskSnapshot, PositionExitAnalysis, SavedPosition, StrategyProfileKey, SymbolItem, WatchlistMonitorSnapshot } from '@/lib/market/types';
+import {
+  ALERT_PORTFOLIO_STATE_KEY, ALERT_PREFS_STORAGE_KEY, ALERT_SCANNER_STATE_KEY, ALERT_WATCH_STATE_KEY, ALERTS_STORAGE_KEY,
+  defaultAlertPreferences, derivePortfolioAlerts, deriveScannerAlerts, deriveWatchlistAlerts, mergeAlertCandidates, portfolioState, scannerState,
+  type AlertCandidate, type AlertEvent, type AlertPreferences, type PortfolioMonitorState, type ScannerMonitorState,
+} from '@/lib/monitoring/alerts';
 
 type ThemePreference = 'auto' | 'light' | 'dark';
-type NavKey = 'analyze' | 'scanner' | 'watchlist' | 'positions' | 'history' | 'settings';
+type NavKey = 'analyze' | 'scanner' | 'watchlist' | 'positions' | 'history' | 'settings' | 'alerts';
 
 type ApiError = { error?: string; correlationId?: string };
 
@@ -57,6 +63,8 @@ export default function MarketApp() {
   const [watchlistLastRefresh, setWatchlistLastRefresh] = useState<string | null>(null);
   const [notificationEnabled, setNotificationEnabled] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission | 'unsupported'>('unsupported');
+  const [alerts, setAlerts] = useState<AlertEvent[]>([]);
+  const [alertPreferences, setAlertPreferences] = useState<AlertPreferences>(defaultAlertPreferences);
   const [entryDraft, setEntryDraft] = useState('');
   const [quantityDraft, setQuantityDraft] = useState('1');
   const [activeEntryPrice, setActiveEntryPrice] = useState<number | null>(null);
@@ -64,6 +72,11 @@ export default function MarketApp() {
   const requestRef = useRef(0);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const watchRefreshRef = useRef(false);
+  const opportunityMonitorRef = useRef(false);
+  const portfolioMonitorRef = useRef(false);
+  const alertsRef = useRef<AlertEvent[]>([]);
+  const alertPrefsRef = useRef<AlertPreferences>(defaultAlertPreferences);
+  const alertReturnNavRef = useRef<NavKey>('analyze');
 
   const availableIntervals = market === 'CRYPTO' ? cryptoIntervals : market === 'FOREX' ? forexIntervals : stockIntervals;
 
@@ -105,9 +118,28 @@ export default function MarketApp() {
 
     setForecastHistory(readForecastHistory());
 
+    try {
+      const storedAlerts = JSON.parse(localStorage.getItem(ALERTS_STORAGE_KEY) || '[]') as AlertEvent[];
+      const safeAlerts = Array.isArray(storedAlerts) ? storedAlerts.filter((item) => item && item.id && item.fingerprint).slice(0, 160) : [];
+      alertsRef.current = safeAlerts;
+      setAlerts(safeAlerts);
+    } catch { alertsRef.current = []; setAlerts([]); }
+    try {
+      const storedPrefs = JSON.parse(localStorage.getItem(ALERT_PREFS_STORAGE_KEY) || '{}') as Partial<AlertPreferences>;
+      const prefs = { ...defaultAlertPreferences, ...storedPrefs };
+      alertPrefsRef.current = prefs;
+      setAlertPreferences(prefs);
+    } catch { alertPrefsRef.current = defaultAlertPreferences; setAlertPreferences(defaultAlertPreferences); }
+
     if ('Notification' in window) {
       setNotificationPermission(Notification.permission);
-      setNotificationEnabled(Notification.permission === 'granted' && localStorage.getItem('marketscope-notifications') === 'enabled');
+      const legacyEnabled = localStorage.getItem('marketscope-notifications') === 'enabled';
+      const prefEnabled = alertPrefsRef.current.browserNotifications || legacyEnabled;
+      setNotificationEnabled(Notification.permission === 'granted' && prefEnabled);
+      if (legacyEnabled && !alertPrefsRef.current.browserNotifications) {
+        const migrated = { ...alertPrefsRef.current, browserNotifications: true };
+        alertPrefsRef.current = migrated; setAlertPreferences(migrated); localStorage.setItem(ALERT_PREFS_STORAGE_KEY, JSON.stringify(migrated));
+      }
     } else {
       setNotificationPermission('unsupported');
       setNotificationEnabled(false);
@@ -206,6 +238,45 @@ export default function MarketApp() {
     setForecastHistory([]);
     writeForecastHistory([]);
   };
+
+  const showAlertNotification = useCallback(async (event: AlertEvent) => {
+    if (!alertPrefsRef.current.browserNotifications || typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
+    try {
+      const registration = await navigator.serviceWorker?.ready;
+      if (registration) {
+        await registration.showNotification(event.title, { body: event.message, tag: event.fingerprint, data: { url: '/' } });
+      } else {
+        new Notification(event.title, { body: event.message, tag: event.fingerprint });
+      }
+    } catch { /* Browser notification is best-effort only. */ }
+  }, []);
+
+  const emitAlertCandidates = useCallback((candidates: AlertCandidate[]) => {
+    if (!candidates.length) return;
+    const result = mergeAlertCandidates(alertsRef.current, candidates, alertPrefsRef.current);
+    if (!result.emitted.length) return;
+    alertsRef.current = result.alerts;
+    setAlerts(result.alerts);
+    localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(result.alerts));
+    for (const event of result.emitted.slice(0, 3)) void showAlertNotification(event);
+  }, [showAlertNotification]);
+
+  const updateAlertPreferences = useCallback((preferences: AlertPreferences) => {
+    alertPrefsRef.current = preferences;
+    setAlertPreferences(preferences);
+    setNotificationEnabled(preferences.browserNotifications && notificationPermission === 'granted');
+    localStorage.setItem(ALERT_PREFS_STORAGE_KEY, JSON.stringify(preferences));
+  }, [notificationPermission]);
+
+  const markAlertRead = useCallback((id: string) => {
+    const next = alertsRef.current.map((item) => item.id === id ? { ...item, unread: false } : item);
+    alertsRef.current = next; setAlerts(next); localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(next));
+  }, []);
+  const markAllAlertsRead = useCallback(() => {
+    const next = alertsRef.current.map((item) => ({ ...item, unread: false }));
+    alertsRef.current = next; setAlerts(next); localStorage.setItem(ALERTS_STORAGE_KEY, JSON.stringify(next));
+  }, []);
+  const clearAlerts = useCallback(() => { alertsRef.current = []; setAlerts([]); localStorage.removeItem(ALERTS_STORAGE_KEY); }, []);
 
   const switchMarket = (nextMarket: MarketType) => {
     if (nextMarket === market) return;
@@ -357,6 +428,9 @@ export default function MarketApp() {
       return next;
     });
 
+    let persisted: Record<string, WatchlistMonitorSnapshot> = {};
+    try { persisted = JSON.parse(localStorage.getItem(ALERT_WATCH_STATE_KEY) || '{}') as Record<string, WatchlistMonitorSnapshot>; } catch { persisted = {}; }
+
     try {
       for (let index = 0; index < watchlist.length; index += 3) {
         const batch = watchlist.slice(index, index + 3);
@@ -367,36 +441,85 @@ export default function MarketApp() {
             const response = await fetch(`/api/market/monitor?${params.toString()}`, { cache: 'no-store' });
             const data = await response.json() as WatchlistMonitorSnapshot & ApiError;
             if (!response.ok) throw new Error(data.error || 'Không thể cập nhật tín hiệu');
-            if (notificationEnabled) void maybeShowWatchNotification(item, data);
+            emitAlertCandidates(deriveWatchlistAlerts(item, persisted[key] || null, data));
+            persisted[key] = data;
             setWatchlistStates((prev) => ({ ...prev, [key]: { status: 'ready', data, checkedAt: new Date().toISOString() } }));
           } catch (err) {
             setWatchlistStates((prev) => ({ ...prev, [key]: { ...prev[key], status: 'error', error: err instanceof Error ? err.message : 'Không thể cập nhật tín hiệu', checkedAt: new Date().toISOString() } }));
           }
         }));
+        localStorage.setItem(ALERT_WATCH_STATE_KEY, JSON.stringify(persisted));
       }
       setWatchlistLastRefresh(new Date().toISOString());
     } finally {
       watchRefreshRef.current = false;
       setWatchlistRefreshing(false);
     }
-  }, [watchlist, notificationEnabled]);
+  }, [watchlist, emitAlertCandidates]);
+
+  // V0.13.0: Watchlist monitoring chạy trong toàn bộ session khi app đang visible,
+  // không còn phụ thuộc người dùng phải đứng tại tab Watchlist.
+  useEffect(() => {
+    if (watchlist.length === 0) return;
+    const initial = window.setTimeout(() => { if (document.visibilityState === 'visible') void refreshWatchlist(); }, 1200);
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void refreshWatchlist(); }, 5 * 60 * 1000);
+    return () => { window.clearTimeout(initial); window.clearInterval(timer); };
+  }, [watchlist.length, refreshWatchlist]);
+
+  const handleScannerResults = useCallback((payload: OpportunityScannerResponse) => {
+    let previous: ScannerMonitorState = {};
+    try { previous = JSON.parse(localStorage.getItem(ALERT_SCANNER_STATE_KEY) || '{}') as ScannerMonitorState; } catch { previous = {}; }
+    emitAlertCandidates(deriveScannerAlerts(previous, payload.items, alertPrefsRef.current));
+    localStorage.setItem(ALERT_SCANNER_STATE_KEY, JSON.stringify(scannerState(payload.items, payload.generatedAt)));
+  }, [emitAlertCandidates]);
+
+  const refreshOpportunityMonitor = useCallback(async () => {
+    if (opportunityMonitorRef.current) return;
+    opportunityMonitorRef.current = true;
+    try {
+      const response = await fetch('/api/market/scanner?market=ALL&profile=AUTO&scope=QUICK&limit=6', { cache: 'no-store' });
+      const payload = await response.json() as OpportunityScannerResponse & ApiError;
+      if (response.ok && payload.items) handleScannerResults(payload);
+    } catch { /* Background scanner monitoring is best-effort. */ }
+    finally { opportunityMonitorRef.current = false; }
+  }, [handleScannerResults]);
 
   useEffect(() => {
-    if (nav !== 'watchlist' || watchlist.length === 0) return;
-    void refreshWatchlist();
-    const timer = window.setInterval(() => {
-      if (document.visibilityState === 'visible') void refreshWatchlist();
-    }, 5 * 60 * 1000);
-    return () => window.clearInterval(timer);
-  }, [nav, watchlist.length, refreshWatchlist]);
+    const initial = window.setTimeout(() => { if (document.visibilityState === 'visible') void refreshOpportunityMonitor(); }, 12_000);
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void refreshOpportunityMonitor(); }, 10 * 60 * 1000);
+    return () => { window.clearTimeout(initial); window.clearInterval(timer); };
+  }, [refreshOpportunityMonitor]);
+
+  const refreshPortfolioMonitor = useCallback(async () => {
+    if (portfolioMonitorRef.current || savedPositions.length === 0) return;
+    portfolioMonitorRef.current = true;
+    try {
+      const response = await fetch('/api/market/portfolio', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, cache: 'no-store',
+        body: JSON.stringify({ positions: savedPositions.map((item) => ({ ...item, quantity: item.quantity || 1 })) }),
+      });
+      const payload = await response.json() as PortfolioRiskSnapshot & ApiError;
+      if (!response.ok || !payload.positions) return;
+      let previous: PortfolioMonitorState = {};
+      try { previous = JSON.parse(localStorage.getItem(ALERT_PORTFOLIO_STATE_KEY) || '{}') as PortfolioMonitorState; } catch { previous = {}; }
+      emitAlertCandidates(derivePortfolioAlerts(previous, payload));
+      localStorage.setItem(ALERT_PORTFOLIO_STATE_KEY, JSON.stringify(portfolioState(payload)));
+    } catch { /* Position background monitoring is best-effort. */ }
+    finally { portfolioMonitorRef.current = false; }
+  }, [savedPositions, emitAlertCandidates]);
+
+  useEffect(() => {
+    if (savedPositions.length === 0) return;
+    const initial = window.setTimeout(() => { if (document.visibilityState === 'visible') void refreshPortfolioMonitor(); }, 18_000);
+    const timer = window.setInterval(() => { if (document.visibilityState === 'visible') void refreshPortfolioMonitor(); }, 10 * 60 * 1000);
+    return () => { window.clearTimeout(initial); window.clearInterval(timer); };
+  }, [savedPositions.length, refreshPortfolioMonitor]);
 
   const toggleNotifications = async () => {
-    if (!('Notification' in window)) {
-      setNotificationPermission('unsupported');
-      return;
-    }
-    if (notificationEnabled) {
+    if (!('Notification' in window)) { setNotificationPermission('unsupported'); return; }
+    if (alertPrefsRef.current.browserNotifications) {
       localStorage.setItem('marketscope-notifications', 'disabled');
+      updateAlertPreferences({ ...alertPrefsRef.current, browserNotifications: false });
       setNotificationEnabled(false);
       return;
     }
@@ -404,6 +527,7 @@ export default function MarketApp() {
     setNotificationPermission(permission);
     if (permission === 'granted') {
       localStorage.setItem('marketscope-notifications', 'enabled');
+      updateAlertPreferences({ ...alertPrefsRef.current, browserNotifications: true });
       setNotificationEnabled(true);
     }
   };
@@ -429,6 +553,31 @@ export default function MarketApp() {
     setNav('analyze');
   };
 
+  const openAlert = (alert: AlertEvent) => {
+    if (alert.action === 'SCANNER') { setMoreOpen(false); setNav('scanner'); return; }
+    if (alert.action === 'POSITION') {
+      const saved = savedPositions.find((item) => item.market === alert.market && item.symbol === alert.symbol);
+      if (saved) { openSavedPosition(saved); return; }
+      if (alert.market && alert.symbol) {
+        setMarket(alert.market); setSymbol(alert.symbol); setQuery(alert.symbol);
+        if (alert.interval) setInterval(alert.interval);
+        if (alert.profile) { setStrategyProfile(alert.profile); localStorage.setItem('marketscope-strategy-profile', alert.profile); }
+      }
+      setNav('positions'); return;
+    }
+    if (alert.market && alert.symbol) {
+      setMarket(alert.market); setSymbol(alert.symbol); setQuery(alert.symbol);
+      if (alert.interval) setInterval(alert.interval);
+      if (alert.profile) { setStrategyProfile(alert.profile); localStorage.setItem('marketscope-strategy-profile', alert.profile); }
+    }
+    setMoreOpen(false); setNav('analyze');
+  };
+
+  const openAlertCenter = () => {
+    if (nav !== 'alerts') alertReturnNavRef.current = nav;
+    setMoreOpen(false); setNav('alerts');
+  };
+
   const toggleCurrentWatchlist = () => {
     if (!snapshot) return;
     const item: WatchlistItem = { market, symbol: snapshot.symbol, interval, profile: strategyProfile, addedAt: new Date().toISOString() };
@@ -450,24 +599,43 @@ export default function MarketApp() {
           <div>
             <div className="brand-row">
               <strong>MarketScope</strong>
-              <span className="version-badge">V0.12.0</span>
+              <span className="version-badge">V0.13.0</span>
             </div>
-            <span className="brand-sub">Crypto Spot • Stock VN • Forex • Smart Scanner</span>
+            <span className="brand-sub">Crypto Spot • Stock VN • Forex • Alert Monitoring</span>
           </div>
         </div>
-        <button className="theme-button" onClick={() => setNav('settings')} aria-label="Cài đặt giao diện">
-          {dark ? '☾' : '☀'}
-        </button>
+        <div className="topbar-actions">
+          <button className="alert-bell-button" onClick={openAlertCenter} aria-label={`Alert Center • ${alerts.filter((item) => item.unread).length} chưa đọc`}>
+            <span>🔔</span>{alerts.some((item) => item.unread) && <b>{Math.min(99, alerts.filter((item) => item.unread).length)}</b>}
+          </button>
+          <button className="theme-button" onClick={() => setNav('settings')} aria-label="Cài đặt giao diện">
+            {dark ? '☾' : '☀'}
+          </button>
+        </div>
       </header>
 
       <section className="content">
-        {nav === 'settings' ? (
+        {nav === 'alerts' ? (
+          <AlertCenterPanel
+            alerts={alerts}
+            preferences={alertPreferences}
+            notificationPermission={notificationPermission}
+            onPreferences={updateAlertPreferences}
+            onToggleBrowserNotifications={() => void toggleNotifications()}
+            onRead={markAlertRead}
+            onReadAll={markAllAlertsRead}
+            onClear={clearAlerts}
+            onOpen={openAlert}
+            onBack={() => setNav(alertReturnNavRef.current === 'alerts' ? 'analyze' : alertReturnNavRef.current)}
+          />
+        ) : nav === 'settings' ? (
           <SettingsPanel themePref={themePref} onTheme={setTheme} onBack={() => setNav('analyze')} />
         ) : nav === 'scanner' ? (
           <OpportunityScannerPanel
             defaultProfile={strategyProfile}
             onOpen={openScannerItem}
             onAddWatchlist={addWatchlistItem}
+            onResults={handleScannerResults}
             onBack={() => setNav('analyze')}
           />
         ) : nav === 'watchlist' ? (
@@ -652,12 +820,12 @@ export default function MarketApp() {
             <section className="roadmap-card">
               <div className="roadmap-icon">↗</div>
               <div>
-                <strong>V0.12.0 • Smart Opportunity Scanner</strong>
-                <p>Tự quét nhiều mã Crypto Spot, Stock VN và Forex; xếp hạng theo Signal, Forecast, Historical Accuracy, Risk/Reward và Data Quality.</p>
+                <strong>V0.13.0 • Alert Center & Opportunity Monitoring</strong>
+                <p>Gom thay đổi Signal, Entry/TP/SL, Forecast, Scanner Opportunity, Positions và Data Quality vào một trung tâm cảnh báo có dedupe/cooldown.</p>
               </div>
             </section>
 
-            <p className="disclaimer">MarketScope V0.12.0: Smart Scanner chỉ dùng để ưu tiên cơ hội cần xem trước; Analyze vẫn là nơi kiểm tra Entry/SL/TP, Forecast, Backtest và Data Quality. Crypto giữ Spot/LONG-only không leverage; Forex chỉ phân tích, không tự đặt lệnh.</p>
+            <p className="disclaimer">MarketScope V0.13.0: Alert Center chỉ ưu tiên sự kiện cần chú ý, không thay thế quyết định giao dịch. Monitoring chạy khi app/PWA còn session hoạt động; Crypto giữ Spot/LONG-only không leverage.</p>
           </>
         )}
       </section>
@@ -708,7 +876,7 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
   return (
     <section className="panel-page">
       <button className="back-button" onClick={onBack}>← Quay lại</button>
-      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.12.0 • Smart Scanner • Forecast Validation • Forex.</p></div>
+      <div className="panel-heading"><h1>Settings</h1><p>Cấu hình MarketScope V0.13.0 • Alert Center • Opportunity Monitoring • Forex.</p></div>
       <div className="settings-card">
         <strong>Giao diện</strong>
         <p>Dark / Light / Auto được lưu trên thiết bị.</p>
@@ -728,11 +896,11 @@ function SettingsPanel({ themePref, onTheme, onBack }: { themePref: ThemePrefere
       </div>
       <div className="settings-card">
         <strong>Watchlist notifications</strong>
-        <p>Bật/tắt quyền thông báo tại module Watchlist. V0.12.0 vẫn chỉ kiểm tra khi Watchlist đang mở; Smart Scanner là quét theo yêu cầu, chưa phải cloud scanner nền 24/7.</p>
+        <p>Browser notification dùng chung với Alert Center. Watchlist quét khoảng 5 phút/lần; Opportunity + Positions khoảng 10 phút/lần khi app đang visible. Chưa phải cloud push 24/7 khi app đóng hoàn toàn.</p>
       </div>
       <div className="settings-card muted-card">
         <strong>Phiên bản</strong>
-        <p>MarketScope V0.12.0 — Smart Opportunity Scanner • Mobile-first UX.</p>
+        <p>MarketScope V0.13.0 — Alert Center & Opportunity Monitoring • Mobile-first UX.</p>
       </div>
     </section>
   );
@@ -748,50 +916,6 @@ function ErrorState({ message, correlationId, onRetry }: { message: string; corr
       <span>!</span><div><strong>Không tải được dữ liệu</strong><p>{message}</p>{correlationId && <small>ID: {correlationId}</small>}</div><button onClick={onRetry}>Thử lại</button>
     </div>
   );
-}
-
-async function maybeShowWatchNotification(item: WatchlistItem, data: WatchlistMonitorSnapshot) {
-  if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') return;
-  const key = watchlistKey(item);
-  const alert = resolveWatchAlert(data);
-  let state: Record<string, string> = {};
-  try { state = JSON.parse(localStorage.getItem('marketscope-watch-alert-state') || '{}') as Record<string, string>; } catch { state = {}; }
-  if (!alert) {
-    if (state[key]) { delete state[key]; localStorage.setItem('marketscope-watch-alert-state', JSON.stringify(state)); }
-    return;
-  }
-  if (state[key] === alert.signature) return;
-  state[key] = alert.signature;
-  localStorage.setItem('marketscope-watch-alert-state', JSON.stringify(state));
-  try {
-    const registration = await navigator.serviceWorker.ready;
-    await registration.showNotification(`MarketScope · ${data.symbol}`, {
-      body: alert.body,
-      tag: `marketscope-${key}`,
-      icon: '/icons/icon-192.png',
-      badge: '/icons/icon-192.png',
-      data: { url: '/' },
-    });
-  } catch {
-    // Notification is best-effort only.
-  }
-}
-
-function resolveWatchAlert(data: WatchlistMonitorSnapshot) {
-  if (!data.quality?.signalAllowed) return null;
-  const price = data.currentPrice;
-  if (data.signal.decision === 'BUY' && data.signal.stopLoss && price <= data.signal.stopLoss.price) {
-    return { signature: `SL:${data.signal.stopLoss.price}`, body: `Giá ${data.symbol} đã chạm/phá mốc SL ${data.signal.stopLoss.price}.` };
-  }
-  const target = data.signal.decision === 'BUY' ? [...data.signal.targets].reverse().find((item) => price >= item.price) : undefined;
-  if (target) return { signature: `${target.key}:${target.price}`, body: `${data.symbol} đã đạt ${target.key} tại vùng ${target.price}.` };
-  if (data.signal.entryZone && price >= data.signal.entryZone.low && price <= data.signal.entryZone.high) {
-    return { signature: `ENTRY:${data.signal.entryZone.low}:${data.signal.entryZone.high}`, body: `${data.symbol} đang nằm trong Entry Zone ${data.signal.entryZone.low}–${data.signal.entryZone.high}.` };
-  }
-  if (data.signal.decision === 'BUY' && data.signal.score >= 70) {
-    return { signature: `BUY:${Math.floor(data.signal.score / 5) * 5}:${data.signal.setup}`, body: `${data.symbol} có BUY signal • Score ${data.signal.score}/100 • ${data.signal.setupLabel}.` };
-  }
-  return null;
 }
 
 function parseEntryPrice(value: string, referencePrice: number) {

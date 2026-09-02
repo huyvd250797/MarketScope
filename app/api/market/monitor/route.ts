@@ -5,6 +5,7 @@ import { assessMarketSnapshot, applyDataQualityGuard } from '@/lib/market/qualit
 import { analyzeTechnical } from '@/lib/analysis/technical';
 import { analyzeTradeSignal } from '@/lib/analysis/signal';
 import { backtestSignalEngine } from '@/lib/analysis/backtest';
+import { forecastPriceBehavior } from '@/lib/analysis/forecast';
 import { normalizeStrategyProfile, resolveStrategyProfile } from '@/lib/analysis/strategy';
 import type { Interval, MarketType, WatchlistMonitorSnapshot } from '@/lib/market/types';
 
@@ -27,7 +28,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Vui lòng nhập mã tài sản', correlationId }, { status: 400 });
   }
   if (market === 'STOCK' && interval === '4h') {
-    return NextResponse.json({ error: 'Chứng khoán V0.12.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
+    return NextResponse.json({ error: 'Chứng khoán V0.13.0 hỗ trợ 15m, 1h, 1d, 1w', correlationId }, { status: 400 });
   }
 
   try {
@@ -44,6 +45,7 @@ export async function GET(request: NextRequest) {
     const backtest = quality.backtestAllowed
       ? backtestSignalEngine(snapshot.candles, market, interval, signal, analysis.regime.key, strategy.effective)
       : null;
+    const forecast = forecastPriceBehavior(snapshot.candles, market, interval, analysis, strategy);
     const calibration = backtest?.calibration ?? {
       applicable: false,
       quality: 'INSUFFICIENT' as const,
@@ -96,6 +98,12 @@ export async function GET(request: NextRequest) {
         profitFactor: calibration.profitFactor,
         estimatedTimeToTp1: calibration.estimatedTimeToTp1,
         matchedBy: calibration.matchedBy,
+      },
+      forecast: {
+        overallBias: forecast.overallBias,
+        overallLabel: forecast.overallLabel,
+        confidence: forecast.calibratedConfidence ?? forecast.confidence,
+        directionProbability: forecast.scenarios[0]?.calibratedProbability ?? forecast.scenarios[0]?.probability ?? 50,
       },
       quality,
       providerDiagnostics: snapshot.providerDiagnostics,

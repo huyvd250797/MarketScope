@@ -531,6 +531,12 @@ export type WatchlistMonitorSnapshot = {
     estimatedTimeToTp1: string | null;
     matchedBy: string;
   };
+  forecast?: {
+    overallBias: PriceForecast['overallBias'];
+    overallLabel: string;
+    confidence: number;
+    directionProbability: number;
+  };
   quality: DataQualityReport;
   providerDiagnostics?: ProviderDiagnostics;
   warning?: string;
